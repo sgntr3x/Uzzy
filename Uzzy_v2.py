@@ -2,7 +2,7 @@ import serial
 import serial.tools.list_ports
 import threading
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, ttk
+from tkinter import scrolledtext, messagebox, ttk, simpledialog
 import time
 import queue
 import os
@@ -247,8 +247,7 @@ class UzzyGUI:
         
         self.btn_ai = tk.Button(ai_button_frame, text="✨ AI Config", bg="#8E44AD", fg="white", 
                                   bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2", activebackground="#9B59B6", command=self.open_ai_config_popup)
-        if HAS_GEMINI:
-            self.btn_ai.pack(side=tk.LEFT, ipady=3, ipadx=8)
+        self.btn_ai.pack(side=tk.LEFT, ipady=3, ipadx=8)
 
         # Aksiyon Butonları (Sağ Taraf)
         action_frame = tk.Frame(self.top_toolbar, bg="#2D2D30")
@@ -278,6 +277,8 @@ class UzzyGUI:
         self.config_menu.add_command(label="Portları Sıfırla (Default)", command=self.apply_default_port_settings)
         self.btn_config.config(menu=self.config_menu)
         self.btn_config.pack(side=tk.LEFT, padx=5, ipady=3, ipadx=10)
+        self.config_menu.add_separator()
+        self.config_menu.add_command(label="MAC Adres Listesi", command=lambda: mac_table.open_mac_table_popup(self))
 
         # 2. Port Görünümü (Fiziksel Switch Paneli)
         self.port_container = tk.Frame(root, bg="#1E1E1E", padx=15, pady=10)
@@ -531,7 +532,8 @@ class UzzyGUI:
         popup.transient(self.root)
         self.active_popup = popup
         popup.title("AI ile Yapılandır")
-        popup.geometry("500x400")
+        popup.geometry("600x600")
+        popup.minsize(550, 550)
         popup.configure(bg="#282828")
 
         tk.Label(popup, text="Yapmak istediğiniz işlemi doğal dilde açıklayın:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 11, "bold")).pack(pady=10)
@@ -539,8 +541,12 @@ class UzzyGUI:
         input_frame = tk.Frame(popup, bg="#101010", bd=1, relief=tk.SOLID)
         input_frame.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
         
-        user_input_text = scrolledtext.ScrolledText(input_frame, bg="#101010", fg="#E0E0E0", font=("Segoe UI", 10), insertbackground="white", bd=0, wrap=tk.WORD)
-        user_input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        user_input_text = tk.Text(input_frame, bg="#101010", fg="#E0E0E0", font=("Segoe UI", 10), insertbackground="white", bd=0, wrap=tk.WORD)
+        ai_scrollbar = ttk.Scrollbar(input_frame, orient="vertical", command=user_input_text.yview, style="Dark.Vertical.TScrollbar")
+        user_input_text.configure(yscrollcommand=ai_scrollbar.set)
+        
+        ai_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        user_input_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
         user_input_text.focus()
         
         # Örnek metin
@@ -569,7 +575,27 @@ class UzzyGUI:
     def _run_ai_configuration(self, user_request, popup, button, status_label):
         """Gemini API'sini kullanarak yapılandırma komutları oluşturur ve uygular."""
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # API anahtarına tanımlı ve metin üretimi (generateContent) destekleyen modelleri listele
+            available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            
+            if not available_models:
+                messagebox.showerror("Model Hatası", "API anahtarınızla kullanılabilecek hiçbir model bulunamadı.", parent=popup)
+                return
+                
+            # Öncelik sırasına göre uygun modeli otomatik seç
+            selected_model_name = None
+            preferred_models = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-1.5-pro', 'models/gemini-pro', 'models/gemini-1.0-pro']
+            
+            for target in preferred_models:
+                if target in available_models:
+                    selected_model_name = target
+                    break
+                    
+            if not selected_model_name:
+                selected_model_name = available_models[0] # Hiçbiri yoksa listedeki ilk modeli al
+                
+            # Seçilen modeli başlat
+            model = genai.GenerativeModel(selected_model_name)
             
             brand = self.selected_brand.get()
             ports = sorted(list(self.selected_ports)) if self.selected_ports else "Hiçbiri"
@@ -600,7 +626,13 @@ class UzzyGUI:
             popup.after(0, self._apply_ai_commands, generated_text, popup)
 
         except Exception as e:
-            messagebox.showerror("API Hatası", f"AI modeline erişilirken bir hata oluştu:\n{e}", parent=popup)
+            error_msg = str(e).lower()
+            if "billing" in error_msg or "403" in error_msg:
+                messagebox.showerror("Bakiye / Fatura Hatası", "Google API hesabınızda faturalandırma (billing) sorunu var.\n\nÇözüm: aistudio.google.com adresinden yeni bir projede ücretsiz API anahtarı oluşturup uygulamaya onu girin.", parent=popup)
+            elif "quota" in error_msg or "429" in error_msg or "exhausted" in error_msg:
+                messagebox.showerror("Kota Doldu", "API anahtarınızın ücretsiz kullanım kotası tamamen dolmuş.\n\nÇözüm: Bekleyin veya yeni bir Google hesabı ile taze bir API anahtarı alın.", parent=popup)
+            else:
+                messagebox.showerror("API Hatası", f"AI modeline erişilirken bir hata oluştu:\n{e}", parent=popup)
         finally:
             # Butonu ve status label'ı eski haline getir
             def reset_ui():
