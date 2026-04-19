@@ -390,20 +390,17 @@ class UzzyGUI:
         try:
             available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             
+            # API Key'in desteklediği modelleri terminale bilgi olarak yazdır
+            popup.after(0, self.log_to_terminal, f"\n[AI BİLGİ] API Key Yetkili Modelleri: {', '.join(available_models)}\n")
+
             if not available_models:
                 messagebox.showerror("Model Hatası", "API anahtarınızla kullanılabilecek hiçbir model bulunamadı.", parent=popup)
                 return
                 
-            selected_model_name = None
-            preferred_models = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-1.5-pro', 'models/gemini-pro', 'models/gemini-1.0-pro']
-            
-            for target in preferred_models:
-                if target in available_models:
-                    selected_model_name = target
-                    break
-                    
-            if not selected_model_name:
-                selected_model_name = available_models[0]
+            selected_model_name = 'models/gemini-2.5-flash'
+            if selected_model_name not in available_models:
+                messagebox.showerror("Model Hatası", f"API anahtarınız {selected_model_name} modelini desteklemiyor.", parent=popup)
+                return
                 
             model = genai.GenerativeModel(selected_model_name)
             
@@ -426,7 +423,12 @@ class UzzyGUI:
             """
             
             response = model.generate_content(prompt)
-            generated_text = response.text.strip()
+            
+            try:
+                generated_text = response.text.strip()
+            except ValueError:
+                messagebox.showerror("Güvenlik Filtresi", f"İsteğiniz Gemini güvenlik politikaları nedeniyle reddedildi.\n\nModelin yanıtı bloklandı.", parent=popup)
+                return
 
             if generated_text.startswith("HATA:"):
                 messagebox.showerror("AI Hatası", generated_text, parent=popup)
@@ -436,10 +438,10 @@ class UzzyGUI:
 
         except Exception as e:
             error_msg = str(e).lower()
-            if "billing" in error_msg or "403" in error_msg:
-                messagebox.showerror("Bakiye / Fatura Hatası", "Google API hesabınızda faturalandırma (billing) sorunu var.\n\nÇözüm: aistudio.google.com adresinden yeni bir projede ücretsiz API anahtarı oluşturup uygulamaya onu girin.", parent=popup)
-            elif "quota" in error_msg or "429" in error_msg or "exhausted" in error_msg:
-                messagebox.showerror("Kota Doldu", "API anahtarınızın ücretsiz kullanım kotası tamamen dolmuş.\n\nÇözüm: Bekleyin veya yeni bir Google hesabı ile taze bir API anahtarı alın.", parent=popup)
+            if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg or "depleted" in error_msg:
+                messagebox.showerror("Kota / Bakiye Doldu (429)", f"API anahtarınızın kotası veya kredisi tükenmiş.\n\nÇözüm: Yeni bir API anahtarı alın veya daha düşük bir modele geçin.\n\nGerçek Hata:\n{e}", parent=popup)
+            elif "403" in error_msg or "billing" in error_msg:
+                messagebox.showerror("Erişim Reddedildi (403)", f"Google API erişiminizi reddetti.\nBu bir Bölge (Lokasyon) kısıtlaması, model yetkisi veya fatura sorunu olabilir.\n\nGerçek Hata:\n{e}", parent=popup)
             else:
                 messagebox.showerror("API Hatası", f"AI modeline erişilirken bir hata oluştu:\n{e}", parent=popup)
         finally:

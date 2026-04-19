@@ -578,21 +578,17 @@ class UzzyGUI:
             # API anahtarına tanımlı ve metin üretimi (generateContent) destekleyen modelleri listele
             available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             
+            # API Key'in desteklediği modelleri terminale bilgi olarak yazdır
+            popup.after(0, self.log_to_terminal, f"\n[AI BİLGİ] API Key Yetkili Modelleri: {', '.join(available_models)}\n")
+
             if not available_models:
                 messagebox.showerror("Model Hatası", "API anahtarınızla kullanılabilecek hiçbir model bulunamadı.", parent=popup)
                 return
                 
-            # Öncelik sırasına göre uygun modeli otomatik seç
-            selected_model_name = None
-            preferred_models = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-1.5-pro', 'models/gemini-pro', 'models/gemini-1.0-pro']
-            
-            for target in preferred_models:
-                if target in available_models:
-                    selected_model_name = target
-                    break
-                    
-            if not selected_model_name:
-                selected_model_name = available_models[0] # Hiçbiri yoksa listedeki ilk modeli al
+            selected_model_name = 'models/gemini-2.5-flash'
+            if selected_model_name not in available_models:
+                messagebox.showerror("Model Hatası", f"API anahtarınız {selected_model_name} modelini desteklemiyor.", parent=popup)
+                return
                 
             # Seçilen modeli başlat
             model = genai.GenerativeModel(selected_model_name)
