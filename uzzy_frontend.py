@@ -26,15 +26,15 @@ import vlan_config
 import mac_table
 import command_builder
 import uzzy_backend
+import get_api_key
 
-# API anahtarınızı bir ortam değişkeni olarak ayarlamanız önerilir.
 if HAS_GEMINI:
     try:
-        GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-        if GEMINI_API_KEY:
+        GEMINI_API_KEY = get_api_key.GEMINI_API_KEY
+        if GEMINI_API_KEY and GEMINI_API_KEY != "BURAYA_API_KEY_GIRIN":
             genai.configure(api_key=GEMINI_API_KEY)
         else:
-            print("Uyarı: 'GEMINI_API_KEY' bulunamadı. Arayüzde kullanıcıya sorulacak.")
+            print("Uyarı: 'get_api_key.py' içerisinde geçerli bir API anahtarı bulunamadı.")
     except Exception as e:
         print(f"Gemini API yapılandırılırken hata oluştu: {e}")
 
@@ -337,13 +337,9 @@ class UzzyGUI:
             messagebox.showerror("Eksik Kütüphane", f"AI kütüphanesi yüklenirken içsel bir hata oluştu:\n\n{GEMINI_ERR}\n\nBu durum genellikle PyInstaller paketlemesinde alt modüllerin eksik kalmasından kaynaklanır.")
             return
             
-        if not os.environ.get("GEMINI_API_KEY"):
-            api_key = simpledialog.askstring("API Anahtarı Gerekli", "GEMINI_API_KEY bulunamadı.\nLütfen Gemini API anahtarınızı girin:", show="*")
-            if api_key:
-                os.environ["GEMINI_API_KEY"] = api_key
-                genai.configure(api_key=api_key)
-            else:
-                return
+        if not get_api_key.GEMINI_API_KEY or get_api_key.GEMINI_API_KEY == "BURAYA_API_KEY_GIRIN":
+            messagebox.showerror("API Anahtarı Eksik", "Lütfen 'get_api_key.py' dosyasına geçerli bir Gemini API anahtarı girin ve uygulamayı yeniden başlatın.")
+            return
 
         self.close_current_popup()
         popup = tk.Toplevel(self.root)
@@ -390,9 +386,6 @@ class UzzyGUI:
         try:
             available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             
-            # API Key'in desteklediği modelleri terminale bilgi olarak yazdır
-            popup.after(0, self.log_to_terminal, f"\n[AI BİLGİ] API Key Yetkili Modelleri: {', '.join(available_models)}\n")
-
             if not available_models:
                 messagebox.showerror("Model Hatası", "API anahtarınızla kullanılabilecek hiçbir model bulunamadı.", parent=popup)
                 return
