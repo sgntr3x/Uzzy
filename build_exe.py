@@ -30,7 +30,7 @@ def build():
         "--copy-metadata", "google-api-core",
         "--copy-metadata", "grpcio",
         "--copy-metadata", "pydantic",
-        "uzzy_frontend.py"
+        "main.py"
     ])
     
     print("\n🎉 BAŞARILI! Lütfen projenizin içindeki 'dist' klasörüne bakın. Uygulamanız hazır!")
