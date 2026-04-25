@@ -165,7 +165,7 @@ class UzzyGUI:
         self.btn_clear_terminal.pack(side=tk.LEFT, padx=10)
 
         shortcuts = [("sh run", "show running-config"), ("sh int status", "show interfaces status"), 
-                     ("sh vlan", "show vlan brief"), ("sh mac", "show mac address-table"), ("sh cdp nei", "show cdp neighbors")]
+                     ("sh vlan", "show vlan brief"), ("sh mac", "show mac address-table"), ("sh cdp nei", "show cdp neighbors detail"), ("sh lldp nei", "show lldp neighbors detail")]
         for lbl, cmd in shortcuts:
             ctk.CTkButton(self.shortcuts_frame, text=lbl, fg_color="#3C3C3C", hover_color="#505050", height=24, font=("Consolas", 11, "bold"), command=lambda c=cmd: self.send_shortcut_command(c)).pack(side=tk.LEFT, padx=3)
 
@@ -214,8 +214,8 @@ class UzzyGUI:
         
         if self.mac_display_area:
             try:
-                self.mac_display_area.insert(tk.END, message)
-                self.mac_display_area.see(tk.END)
+                self.mac_display_area.insert("end", message)
+                self.mac_display_area.see("end")
             except:
                 self.mac_display_area = None
 
@@ -304,11 +304,14 @@ class UzzyGUI:
         time.sleep(0.5)
         self.serial_conn.write_data("show interfaces status\r\n")
         
-        threading.Thread(target=self._analyze_port_count, daemon=True).start()
+        threading.Thread(target=self._start_analyze_delay, daemon=True).start()
 
-    def _analyze_port_count(self):
+    def _start_analyze_delay(self):
         time.sleep(3) 
-        content = self.terminal.get("1.0", tk.END).splitlines()
+        self.root.after(0, self._process_port_count)
+
+    def _process_port_count(self):
+        content = self.terminal.get("1.0", "end").splitlines()
         unique_ports = set()
         
         for line in content[-300:]: 
@@ -372,6 +375,12 @@ class UzzyGUI:
     def check_for_data(self):
         while not self.serial_conn.data_queue.empty():
             data = self.serial_conn.data_queue.get()
+            
+            if getattr(self, 'is_capturing', False) and hasattr(self, 'capture_file_obj') and self.capture_file_obj:
+                self.capture_file_obj.write(data)
+                self.capture_file_obj.flush()
+                self.reset_capture_timer()
+                
             self.log_to_terminal(data)
         self.root.after(50, self.check_for_data)
 
