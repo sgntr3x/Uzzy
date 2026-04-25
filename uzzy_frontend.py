@@ -366,7 +366,7 @@ def main():
     except Exception as e:
         print(f"İkon yüklenemedi: {e}")
 
-    root.withdraw()
+    # root.withdraw() # Geliştirme aşamasında splash ekranını atlamak için kapattık
     
     app = UzzyGUI(root)
     
@@ -377,6 +377,8 @@ def main():
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
     
+    # --- Splash Ekranı Geçici Olarak İptal Edildi ---
+    """
     splash = tk.Toplevel(root)
     splash.overrideredirect(True)
     splash.attributes("-topmost", True)
@@ -436,6 +438,7 @@ def main():
 
     splash.after(5000, fade_out)
     splash.after(3000, fade_out)
+    """
 
     root.mainloop()
 

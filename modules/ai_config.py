@@ -101,14 +101,56 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
     commands_list = [cmd.strip() for cmd in commands_text.split('\n') if cmd.strip()]
     if not commands_list: return messagebox.showwarning("AI Sonucu", "AI komut üretmedi.", parent=popup)
 
-    if messagebox.askyesno("Onay", "Şu komutlar uygulanacak:\n\n" + "\n".join(commands_list), parent=popup):
-        parent_gui.log_to_terminal(f"\n[AI CONFIG] '{commands_list[0]}...' uygulanıyor...\n")
-        for cmd in commands_list:
-            if parent_gui.serial_conn.is_connected:
-                parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else:
-                parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
-            time.sleep(0.05)
-        parent_gui.log_to_terminal(f"\n[AI CONFIG] Tamamlandı.\n")
-        popup.destroy()
-        parent_gui.clear_port_selection()
+    confirm_popup = tk.Toplevel(popup)
+    confirm_popup.transient(popup)
+    confirm_popup.title("AI Config Onayı")
+    confirm_popup.geometry("550x550")
+    confirm_popup.configure(bg="#282828")
+    
+    tk.Label(confirm_popup, text="Aşağıdaki komutlar uygulanacak:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 11, "bold")).pack(pady=10)
+    
+    text_frame = tk.Frame(confirm_popup, bg="#101010", bd=1, relief=tk.SOLID)
+    text_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+    
+    config_text = tk.Text(text_frame, bg="#101010", fg="#E0E0E0", font=("Consolas", 10), bd=0, wrap=tk.WORD)
+    scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=config_text.yview, style="Dark.Vertical.TScrollbar")
+    config_text.configure(yscrollcommand=scrollbar.set)
+    
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    config_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+    
+    config_string = "\n".join(commands_list)
+    config_text.insert("1.0", config_string)
+    config_text.config(state=tk.DISABLED)
+    
+    btn_frame = tk.Frame(confirm_popup, bg="#282828")
+    btn_frame.pack(pady=15, fill=tk.X, padx=10)
+    
+    def on_cancel():
+        confirm_popup.destroy()
+        
+    def on_copy():
+        confirm_popup.clipboard_clear()
+        confirm_popup.clipboard_append(config_string)
+        confirm_popup.update()
+        
+    def on_confirm():
+        if messagebox.askyesno("Emin Misin?", "Bu konfigürasyonları uygulamak istediğinize emin misiniz?", parent=confirm_popup):
+            confirm_popup.destroy()
+            parent_gui.log_to_terminal(f"\n[AI CONFIG] '{commands_list[0]}...' uygulanıyor...\n")
+            for cmd in commands_list:
+                if parent_gui.serial_conn.is_connected:
+                    parent_gui.serial_conn.write_data(cmd + "\r\n")
+                else:
+                    parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+                time.sleep(0.05)
+            parent_gui.log_to_terminal(f"\n[AI CONFIG] Tamamlandı.\n")
+            popup.destroy()
+            parent_gui.clear_port_selection()
+            
+    tk.Button(btn_frame, text="Config'i İptal Et", bg="#C62828", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
+              activebackground="#E53935", command=on_cancel).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
+    tk.Button(btn_frame, text="Config'i Kopyala", bg="#0277BD", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
+              activebackground="#01579B", command=on_copy).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
+    tk.Button(btn_frame, text="Config'i Onayla", bg="#2E7D32", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
+              activebackground="#1B5E20", command=on_confirm).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
