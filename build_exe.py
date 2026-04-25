@@ -19,6 +19,7 @@ def build():
         "--noconsole", 
         "--onefile", 
         "--add-data", f"uzzy_icon.png{separator}.", 
+        "--add-data", f"uzzy_icon.ico{separator}.", 
         "--collect-all", "google.generativeai",
         "--collect-all", "google.ai.generativelanguage",
         "--collect-all", "customtkinter",

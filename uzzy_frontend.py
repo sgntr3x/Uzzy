@@ -464,11 +464,15 @@ def main():
             base_path = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base_path, relative_path)
 
-    icon_path = resource_path("uzzy_icon.png")
+    icon_path_ico = resource_path("uzzy_icon.ico")
+    icon_path_png = resource_path("uzzy_icon.png")
 
     try:
-        icon_img = tk.PhotoImage(file=icon_path)
-        root.iconphoto(True, icon_img)
+        if os.name == 'nt':
+            root.iconbitmap(icon_path_ico)
+        else:
+            icon_img = tk.PhotoImage(file=icon_path_png)
+            root.iconphoto(True, icon_img)
     except Exception as e:
         print(f"İkon yüklenemedi: {e}")
 
