@@ -17,9 +17,40 @@ def get_config_term(brand):
     """Global konfigürasyon moduna geçiş komutunu JSON'dan çeker."""
     return COMMANDS.get(brand, {}).get("global_config", "conf t")
 
-def get_interface_name(brand, port):
+def group_ports(ports):
+    """Ardışık portları gruplayarak range formatına çevirir. (Örn: [1,2,3,5] -> ['1-3', '5'])"""
+    if not ports:
+        return []
+    sorted_ports = sorted(list(set([int(p) for p in ports])))
+    ranges = []
+    start = sorted_ports[0]
+    end = sorted_ports[0]
+    
+    for p in sorted_ports[1:]:
+        if p == end + 1:
+            end = p
+        else:
+            if start == end:
+                ranges.append(str(start))
+            else:
+                ranges.append(f"{start}-{end}")
+            start = p
+            end = p
+            
+    if start == end:
+        ranges.append(str(start))
+    else:
+        ranges.append(f"{start}-{end}")
+        
+    return ranges
+
+def get_interface_name(brand, port, is_range=False):
     """Markaya göre interface ismini JSON'dan çeker (GigabitEthernet, port1.0 vb.)."""
-    template = COMMANDS.get(brand, {}).get("interface", "interface GigabitEthernet 0/{port}")
+    brand_cmds = COMMANDS.get(brand, {})
+    if is_range:
+        template = brand_cmds.get("interface_range", brand_cmds.get("interface", "interface GigabitEthernet 0/{port}"))
+    else:
+        template = brand_cmds.get("interface", "interface GigabitEthernet 0/{port}")
     return template.format(port=port)
 
 def build_create_vlan_cmds(brand, vlan_id, vlan_name=None, ip=None, mask=None):
@@ -45,8 +76,10 @@ def build_assign_vlan_cmds(brand, ports, vlan_id, mode):
     assign_cmds = brand_cmds.get("vlan_assign", {})
     
     cmds = [get_config_term(brand)]
-    for p in ports:
-        cmds.append(get_interface_name(brand, p))
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        cmds.append(get_interface_name(brand, pr, is_range))
         if mode == "Access":
             cmds.append(assign_cmds.get("access_mode", "switchport mode access"))
             cmds.append(assign_cmds.get("access_vlan", "switchport access vlan {vlan_id}").format(vlan_id=vlan_id))
@@ -62,8 +95,10 @@ def build_stp_cmds(brand, ports, stp_mode):
     stp_cmds = brand_cmds.get("stp", {})
     
     cmds = [get_config_term(brand)]
-    for p in ports:
-        cmds.append(get_interface_name(brand, p))
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        cmds.append(get_interface_name(brand, pr, is_range))
         if stp_mode == "portfast":
             cmds.append(stp_cmds.get("portfast", "spanning-tree portfast"))
         elif stp_mode == "bpduguard":
@@ -97,8 +132,10 @@ def build_port_control_cmds(brand, ports, state):
     """Portu açma veya kapatma komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     cmds = [get_config_term(brand)]
-    for p in ports:
-        cmds.append(get_interface_name(brand, p))
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        cmds.append(get_interface_name(brand, pr, is_range))
         cmds.append(state)
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
@@ -107,8 +144,13 @@ def build_default_port_cmds(brand, ports):
     """Portu fabrika ayarlarına sıfırlama komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     cmds = [get_config_term(brand)]
-    for p in ports:
-        template = brand_cmds.get("default_interface", "default interface GigabitEthernet 0/{port}")
-        cmds.append(template.format(port=p))
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        if is_range:
+            template = brand_cmds.get("default_interface_range", brand_cmds.get("default_interface", "default interface GigabitEthernet 0/{port}"))
+        else:
+            template = brand_cmds.get("default_interface", "default interface GigabitEthernet 0/{port}")
+        cmds.append(template.format(port=pr))
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds

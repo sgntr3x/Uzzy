@@ -2,7 +2,9 @@
   "Cisco": {
     "global_config": "conf t",
     "interface": "interface GigabitEthernet 1/0/{port}",
+    "interface_range": "interface range GigabitEthernet 1/0/{port}",
     "default_interface": "default interface GigabitEthernet 1/0/{port}",
+    "default_interface_range": "default interface range GigabitEthernet 1/0/{port}",
     "end_command": "end",
     "exit_command": "exit",
     "vlan_create": {
@@ -26,7 +28,9 @@
   "Allied Telesis": {
     "global_config": "conf t",
     "interface": "interface port1.0.{port}",
+    "interface_range": "interface port1.0.{port}",
     "default_interface": "default interface port1.0.{port}",
+    "default_interface_range": "default interface port1.0.{port}",
     "end_command": "end",
     "exit_command": "exit",
     "vlan_create": {
@@ -50,7 +54,9 @@
   "Ruijie": {
     "global_config": "configure terminal",
     "interface": "interface GigabitEthernet 0/{port}",
+    "interface_range": "interface range GigabitEthernet 0/{port}",
     "default_interface": "default interface GigabitEthernet 0/{port}",
+    "default_interface_range": "default interface range GigabitEthernet 0/{port}",
     "end_command": "end",
     "exit_command": "exit",
     "vlan_create": {
@@ -74,7 +80,9 @@
   "HPE Aruba": {
     "global_config": "configure terminal",
     "interface": "interface {port}",
+    "interface_range": "interface {port}",
     "default_interface": "default interface {port}",
+    "default_interface_range": "default interface {port}",
     "end_command": "end",
     "exit_command": "exit",
     "vlan_create": {
