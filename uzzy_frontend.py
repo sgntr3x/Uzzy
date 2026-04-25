@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, ttk
+from tkinter import scrolledtext, messagebox, ttk, filedialog
 import time
 import threading
 import os
@@ -78,6 +78,10 @@ class UzzyGUI:
                                      bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2", activebackground="#01579B", command=self.refresh_connection)
         self.btn_refresh.pack(side=tk.LEFT, padx=5, ipady=3, ipadx=5)
         
+        self.btn_download_cfg = tk.Button(action_frame, text="📥 Config İndir", bg="#2E7D32", fg="white", 
+                                          bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2", activebackground="#1B5E20", command=self.start_config_backup)
+        self.btn_download_cfg.pack(side=tk.LEFT, padx=5, ipady=3, ipadx=5)
+
         self.btn_select_all = tk.Button(action_frame, text="Tümünü Seç", bg="#505050", fg="#E0E0E0", 
                                         bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2", activebackground="#606060", command=self.select_all_ports)
         self.btn_select_all.pack(side=tk.LEFT, padx=5, ipady=3, ipadx=5)
@@ -346,6 +350,53 @@ class UzzyGUI:
                 self.status_var.set("Cihaz Ayrıldı - Yeni Port Bekleniyor...")
 
         self.root.after(1000, self.auto_connect_service)
+
+    def start_config_backup(self):
+        if not self.serial_conn.is_connected:
+            messagebox.showerror("Hata", "Lütfen önce bir cihaza bağlanın.")
+            return
+            
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+            title="Switch Config'ini Kaydet"
+        )
+        if not filepath:
+            return
+            
+        try:
+            self.capture_filepath = filepath
+            self.capture_file_obj = open(self.capture_filepath, "w", encoding="utf-8")
+            self.capture_file_obj.write(f"! --- Uzzy Config Backup | Marka: {self.selected_brand.get()} ---\n\n")
+            self.is_capturing = True
+        except Exception as e:
+            messagebox.showerror("Hata", f"Dosya oluşturulamadı:\n{e}")
+            return
+
+        brand = self.selected_brand.get()
+        if brand == "HPE Aruba":
+            self.serial_conn.write_data("no page\r\n")
+        else:
+            self.serial_conn.write_data("terminal length 0\r\n")
+        
+        self.root.after(500, lambda: self.serial_conn.write_data("show running-config\r\n"))
+        
+        self.log_to_terminal(f"\n[BİLGİ] Config indiriliyor... Lütfen bitene kadar bekleyin.\n")
+        self.reset_capture_timer()
+
+    def reset_capture_timer(self):
+        if hasattr(self, 'capture_timer') and self.capture_timer:
+            self.root.after_cancel(self.capture_timer)
+        self.capture_timer = self.root.after(3000, self.stop_config_backup)
+
+    def stop_config_backup(self):
+        if getattr(self, 'is_capturing', False):
+            self.is_capturing = False
+            if hasattr(self, 'capture_file_obj') and self.capture_file_obj:
+                self.capture_file_obj.close()
+                self.capture_file_obj = None
+            self.log_to_terminal(f"\n[BİLGİ] Config başarıyla kaydedildi: {self.capture_filepath}\n")
+            messagebox.showinfo("Başarılı", f"Config yedeği alındı:\n{self.capture_filepath}")
 
 def main():
     root = tk.Tk()

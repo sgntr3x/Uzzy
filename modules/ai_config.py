@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 import threading
 import time
 import traceback
@@ -134,6 +134,21 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
         confirm_popup.clipboard_append(config_string)
         confirm_popup.update()
         
+    def on_download():
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+            title="Config'i Kaydet",
+            parent=confirm_popup
+        )
+        if filepath:
+            try:
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(config_string)
+                messagebox.showinfo("Başarılı", "Config başarıyla kaydedildi.", parent=confirm_popup)
+            except Exception as e:
+                messagebox.showerror("Hata", f"Dosya kaydedilemedi:\n{e}", parent=confirm_popup)
+
     def on_confirm():
         if messagebox.askyesno("Emin Misin?", "Bu konfigürasyonları uygulamak istediğinize emin misiniz?", parent=confirm_popup):
             confirm_popup.destroy()
@@ -152,5 +167,7 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
               activebackground="#E53935", command=on_cancel).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
     tk.Button(btn_frame, text="Config'i Kopyala", bg="#0277BD", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
               activebackground="#01579B", command=on_copy).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
+    tk.Button(btn_frame, text="TXT İndir", bg="#F39C12", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
+              activebackground="#D68910", command=on_download).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
     tk.Button(btn_frame, text="Config'i Onayla", bg="#2E7D32", fg="white", font=("Segoe UI", 9, "bold"), bd=0, cursor="hand2", 
               activebackground="#1B5E20", command=on_confirm).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X, ipady=4)
