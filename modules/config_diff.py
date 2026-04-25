@@ -6,6 +6,7 @@ import os
 def open_diff_tool(parent_gui):
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("Config Karşılaştırma (Diff)")

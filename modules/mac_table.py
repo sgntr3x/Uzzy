@@ -5,6 +5,7 @@ def open_mac_table_popup(parent_gui):
     parent_gui.close_current_popup()
     brand = parent_gui.selected_brand.get()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     parent_gui.active_popup = popup
     popup.transient(parent_gui.root)
     popup.title(f"MAC Adres Listesi - {brand}")

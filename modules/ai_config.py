@@ -34,6 +34,7 @@ def open_ai_config_popup(parent_gui):
 
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("AI ile Yapılandır")
@@ -96,6 +97,7 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
     if not commands_list: return messagebox.showwarning("AI Sonucu", "AI komut üretmedi.", parent=popup)
 
     confirm_popup = ctk.CTkToplevel(popup)
+    parent_gui.set_window_icon(confirm_popup)
     confirm_popup.transient(popup)
     confirm_popup.title("AI Config Onayı")
     confirm_popup.geometry("550x550")

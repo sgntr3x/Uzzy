@@ -7,6 +7,7 @@ from . import command_builder
 def open_create_vlan_popup(parent_gui):
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("VLAN Oluştur")
@@ -73,6 +74,7 @@ def open_assign_vlan_popup(parent_gui):
         
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("VLAN Ata")
@@ -114,6 +116,7 @@ def open_stp_config_popup(parent_gui):
         
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("STP Ayarları")
@@ -143,6 +146,7 @@ def open_stp_config_popup(parent_gui):
 def open_management_ip_popup(parent_gui):
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("Management IP Ata")
@@ -184,6 +188,7 @@ def open_port_control_popup_new(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen sol tablodan port seçin!")
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
+    parent_gui.set_window_icon(popup)
     parent_gui.active_popup = popup
     popup.title("Port Aç / Kapat")
     popup.geometry("300x200")

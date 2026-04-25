@@ -187,6 +187,31 @@ class UzzyGUI:
         self.check_for_data()
         self.auto_connect_service()
 
+    def set_window_icon(self, window):
+        import sys
+        def resource_path(relative_path):
+            try:
+                base_path = sys._MEIPASS
+            except Exception:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(base_path, relative_path)
+
+        icon_path_ico = resource_path("uzzy_icon.ico")
+        icon_path_png = resource_path("uzzy_icon.png")
+
+        def apply_icon():
+            try:
+                if os.name == 'nt':
+                    window.iconbitmap(icon_path_ico)
+                else:
+                    icon_img = tk.PhotoImage(file=icon_path_png)
+                    window.iconphoto(False, icon_img)
+            except Exception:
+                pass
+        
+        apply_icon()
+        window.after(200, apply_icon)
+
     def close_current_popup(self):
         if self.active_popup:
             try:
@@ -476,7 +501,7 @@ def main():
     except Exception as e:
         print(f"İkon yüklenemedi: {e}")
 
-    # root.withdraw() # Geliştirme aşamasında splash ekranını atlamak için kapattık
+    root.withdraw()
     
     app = UzzyGUI(root)
     
@@ -487,17 +512,14 @@ def main():
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
     
-    # --- Splash Ekranı Geçici Olarak İptal Edildi ---
-    """
     splash = tk.Toplevel(root)
     splash.overrideredirect(True)
     splash.attributes("-topmost", True)
     splash.configure(bg="#1A1A1A")
-    
+
     try:
-        splash_img = tk.PhotoImage(file=icon_path)
         if HAS_PIL:
-            img = Image.open(icon_path).convert("RGBA")
+            img = Image.open(icon_path_png).convert("RGBA")
             new_w = int(img.width * 0.3)
             new_h = int(img.height * 0.3)
             
@@ -517,7 +539,7 @@ def main():
             
             splash_img = ImageTk.PhotoImage(img)
         else:
-            splash_img = tk.PhotoImage(file=icon_path).subsample(3, 3)
+            splash_img = tk.PhotoImage(file=icon_path_png).subsample(3, 3)
 
         splash_label = tk.Label(splash, image=splash_img, bg="#1A1A1A", bd=0)
         splash_label.image = splash_img
@@ -546,9 +568,7 @@ def main():
             splash.destroy()
             root.deiconify()
 
-    splash.after(5000, fade_out)
     splash.after(3000, fade_out)
-    """
 
     root.mainloop()
 
