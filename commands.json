@@ -1,0 +1,98 @@
+{
+  "Cisco": {
+    "global_config": "conf t",
+    "interface": "interface GigabitEthernet 1/0/{port}",
+    "default_interface": "default interface GigabitEthernet 1/0/{port}",
+    "end_command": "end",
+    "exit_command": "exit",
+    "vlan_create": {
+      "create": "vlan {vlan_id}",
+      "name": "name {vlan_name}",
+      "interface": "interface vlan {vlan_id}",
+      "ip_address": "ip address {ip} {mask}",
+      "no_shutdown": "no shutdown"
+    },
+    "vlan_assign": {
+      "access_mode": "switchport mode access",
+      "access_vlan": "switchport access vlan {vlan_id}",
+      "trunk_mode": "switchport mode trunk",
+      "trunk_vlan": "switchport trunk allowed vlan {vlan_id}"
+    },
+    "stp": {
+      "portfast": "spanning-tree portfast",
+      "bpduguard": "spanning-tree bpduguard enable"
+    }
+  },
+  "Allied Telesis": {
+    "global_config": "conf t",
+    "interface": "interface port1.0.{port}",
+    "default_interface": "default interface port1.0.{port}",
+    "end_command": "end",
+    "exit_command": "exit",
+    "vlan_create": {
+      "create": "vlan {vlan_id}",
+      "name": "name {vlan_name}",
+      "interface": "interface vlan {vlan_id}",
+      "ip_address": "ip address {ip} {mask}",
+      "no_shutdown": "no shutdown"
+    },
+    "vlan_assign": {
+      "access_mode": "switchport mode access",
+      "access_vlan": "switchport access vlan {vlan_id}",
+      "trunk_mode": "switchport mode trunk",
+      "trunk_vlan": "switchport trunk allowed vlan {vlan_id}"
+    },
+    "stp": {
+      "portfast": "spanning-tree edgeport",
+      "bpduguard": "spanning-tree bpdu-guard enable"
+    }
+  },
+  "Ruijie": {
+    "global_config": "configure terminal",
+    "interface": "interface GigabitEthernet 0/{port}",
+    "default_interface": "default interface GigabitEthernet 0/{port}",
+    "end_command": "end",
+    "exit_command": "exit",
+    "vlan_create": {
+      "create": "vlan {vlan_id}",
+      "name": "name {vlan_name}",
+      "interface": "interface vlan {vlan_id}",
+      "ip_address": "ip address {ip} {mask}",
+      "no_shutdown": "no shutdown"
+    },
+    "vlan_assign": {
+      "access_mode": "switchport mode access",
+      "access_vlan": "switchport access vlan {vlan_id}",
+      "trunk_mode": "switchport mode trunk",
+      "trunk_vlan": "switchport trunk allowed vlan {vlan_id}"
+    },
+    "stp": {
+      "portfast": "spanning-tree portfast",
+      "bpduguard": "spanning-tree bpduguard enable"
+    }
+  },
+  "HPE Aruba": {
+    "global_config": "configure terminal",
+    "interface": "interface {port}",
+    "default_interface": "default interface {port}",
+    "end_command": "end",
+    "exit_command": "exit",
+    "vlan_create": {
+      "create": "vlan {vlan_id}",
+      "name": "name {vlan_name}",
+      "interface": "interface vlan {vlan_id}",
+      "ip_address": "ip address {ip} {mask}",
+      "no_shutdown": "no shutdown"
+    },
+    "vlan_assign": {
+      "access_mode": "no routing",
+      "access_vlan": "vlan access {vlan_id}",
+      "trunk_mode": "no routing",
+      "trunk_vlan": "vlan trunk allowed {vlan_id}"
+    },
+    "stp": {
+      "portfast": "spanning-tree port-type admin-edge",
+      "bpduguard": "spanning-tree bpdu-guard"
+    }
+  }
+}

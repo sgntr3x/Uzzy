@@ -45,7 +45,7 @@ class UzzyGUI:
         brand_frame.pack(side=tk.LEFT)
         tk.Label(brand_frame, text="MARKA:", fg="#A0A0A0", bg="#2D2D30", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=(0, 5))
         
-        brands = ["Cisco", "Allied Telesis", "Ruijie"]
+        brands = ["Cisco", "Allied Telesis", "Ruijie", "HPE Aruba"]
         self.brand_menu = tk.OptionMenu(brand_frame, self.selected_brand, *brands)
         self.brand_menu.config(bg="#3C3C3C", fg="#E0E0E0", bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2", activebackground="#505050", highlightthickness=0)
         self.brand_menu["menu"].config(bg="#3C3C3C", fg="#E0E0E0", font=("Segoe UI", 9), bd=0)
