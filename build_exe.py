@@ -6,7 +6,7 @@ def build():
     print(f"Kullanılan Python: {sys.executable}")
     
     print("\n1. Gerekli kütüphaneler indiriliyor/kontrol ediliyor...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller", "google-generativeai"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller", "google-generativeai", "customtkinter"])
     
     print("\n2. EXE dosyası oluşturuluyor (Bu işlem biraz sürebilir, lütfen bekleyin)...")
     
@@ -21,6 +21,7 @@ def build():
         "--add-data", f"uzzy_icon.png{separator}.", 
         "--collect-all", "google.generativeai",
         "--collect-all", "google.ai.generativelanguage",
+        "--collect-all", "customtkinter",
         "--collect-all", "google.api_core",
         "--collect-all", "google.auth",
         "--collect-all", "google.protobuf",

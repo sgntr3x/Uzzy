@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 import time
 import ipaddress
@@ -6,32 +6,31 @@ from . import command_builder
 
 def open_create_vlan_popup(parent_gui):
     parent_gui.close_current_popup()
-    popup = tk.Toplevel(parent_gui.root)
+    popup = ctk.CTkToplevel(parent_gui.root)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("VLAN Oluştur")
     popup.geometry("350x340")
-    popup.configure(bg="#282828")
     
-    tk.Label(popup, text="Switch Üzerinde VLAN Oluştur", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 12, "bold")).pack(pady=15)
+    ctk.CTkLabel(popup, text="Switch Üzerinde VLAN Oluştur", font=("Segoe UI", 14, "bold")).pack(pady=15)
     
-    frame = tk.Frame(popup, bg="#282828")
+    frame = ctk.CTkFrame(popup, fg_color="transparent")
     frame.pack(pady=5)
     
-    tk.Label(frame, text="VLAN ID:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 10)).grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    vlan_id_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0, font=("Segoe UI", 10))
+    ctk.CTkLabel(frame, text="VLAN ID:", font=("Segoe UI", 12)).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    vlan_id_entry = ctk.CTkEntry(frame, font=("Segoe UI", 12))
     vlan_id_entry.grid(row=0, column=1, padx=5, pady=5)
     
-    tk.Label(frame, text="VLAN Name:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 10)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    vlan_name_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0, font=("Segoe UI", 10))
+    ctk.CTkLabel(frame, text="VLAN Name:", font=("Segoe UI", 12)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    vlan_name_entry = ctk.CTkEntry(frame, font=("Segoe UI", 12))
     vlan_name_entry.grid(row=1, column=1, padx=5, pady=5)
     
-    tk.Label(frame, text="IP Adresi (Opsiyonel):", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 10)).grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    ip_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0, font=("Segoe UI", 10))
+    ctk.CTkLabel(frame, text="IP Adresi (Opsiyonel):", font=("Segoe UI", 12)).grid(row=2, column=0, padx=5, pady=5, sticky="e")
+    ip_entry = ctk.CTkEntry(frame, font=("Segoe UI", 12))
     ip_entry.grid(row=2, column=1, padx=5, pady=5)
     
-    tk.Label(frame, text="Subnet Mask (Opsiyonel):", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 10)).grid(row=3, column=0, padx=5, pady=5, sticky="e")
-    mask_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0, font=("Segoe UI", 10))
+    ctk.CTkLabel(frame, text="Subnet Mask (Ops):", font=("Segoe UI", 12)).grid(row=3, column=0, padx=5, pady=5, sticky="e")
+    mask_entry = ctk.CTkEntry(frame, font=("Segoe UI", 12))
     mask_entry.grid(row=3, column=1, padx=5, pady=5)
     
     def apply_create():
@@ -61,37 +60,36 @@ def open_create_vlan_popup(parent_gui):
         ip_log = f" IP: {ip}" if ip else ""
         parent_gui.log_to_terminal(f"\n[VLAN OLUŞTURULDU] ID: {v_id} Name: {v_name}{ip_log}\n")
         
-        vlan_id_entry.delete(0, tk.END)
-        vlan_name_entry.delete(0, tk.END)
-        ip_entry.delete(0, tk.END)
-        mask_entry.delete(0, tk.END)
+        vlan_id_entry.delete(0, "end")
+        vlan_name_entry.delete(0, "end")
+        ip_entry.delete(0, "end")
+        mask_entry.delete(0, "end")
             
-    tk.Button(popup, text="OLUŞTUR", bg="#C62828", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=apply_create, activebackground="#E53935").pack(fill=tk.X, padx=40, pady=(10, 5), ipady=4)
-    tk.Button(popup, text="ÇIKIŞ", bg="#505050", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=popup.destroy, activebackground="#606060").pack(fill=tk.X, padx=40, pady=(0, 10), ipady=4)
+    ctk.CTkButton(popup, text="OLUŞTUR", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_create).pack(fill=ctk.X, padx=40, pady=(10, 5))
+    ctk.CTkButton(popup, text="ÇIKIŞ", fg_color="#505050", hover_color="#606060", font=("Segoe UI", 12, "bold"), command=popup.destroy).pack(fill=ctk.X, padx=40, pady=(0, 10))
               
 def open_assign_vlan_popup(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen sol tablodan port seçin!")
         
     parent_gui.close_current_popup()
-    popup = tk.Toplevel(parent_gui.root)
+    popup = ctk.CTkToplevel(parent_gui.root)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("VLAN Ata")
     popup.geometry("350x250")
-    popup.configure(bg="#282828")
     
-    vlan_mode = tk.StringVar(value="Access")
-    tk.Label(popup, text=f"Seçili {len(parent_gui.selected_ports)} Porta VLAN Ata", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 12, "bold")).pack(pady=10)
-    mode_frame = tk.Frame(popup, bg="#282828")
+    vlan_mode = ctk.StringVar(value="Access")
+    ctk.CTkLabel(popup, text=f"Seçili {len(parent_gui.selected_ports)} Porta VLAN Ata", font=("Segoe UI", 14, "bold")).pack(pady=10)
+    mode_frame = ctk.CTkFrame(popup, fg_color="transparent")
     mode_frame.pack(pady=5)
-    tk.Radiobutton(mode_frame, text="ACCESS", variable=vlan_mode, value="Access", bg="#3C3C3C", fg="#E0E0E0", font=("Segoe UI", 9, "bold"), selectcolor="#C62828", indicatoron=0, width=12).pack(side=tk.LEFT, padx=5)
-    tk.Radiobutton(mode_frame, text="TRUNK", variable=vlan_mode, value="Trunk", bg="#3C3C3C", fg="#E0E0E0", font=("Segoe UI", 9, "bold"), selectcolor="#C62828", indicatoron=0, width=12).pack(side=tk.LEFT, padx=5)
+    ctk.CTkRadioButton(mode_frame, text="ACCESS", variable=vlan_mode, value="Access", fg_color="#C62828").pack(side=ctk.LEFT, padx=15)
+    ctk.CTkRadioButton(mode_frame, text="TRUNK", variable=vlan_mode, value="Trunk", fg_color="#C62828").pack(side=ctk.LEFT, padx=15)
     
-    frame = tk.Frame(popup, bg="#282828")
+    frame = ctk.CTkFrame(popup, fg_color="transparent")
     frame.pack(pady=15)
-    tk.Label(frame, text="VLAN ID (Örn: 10 veya 10,20,30):", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 9)).pack()
-    vlan_id_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0, font=("Segoe UI", 11), justify="center")
-    vlan_id_entry.pack(pady=5, fill=tk.X, ipady=3)
+    ctk.CTkLabel(frame, text="VLAN ID (Örn: 10 veya 10,20,30):", font=("Segoe UI", 12)).pack()
+    vlan_id_entry = ctk.CTkEntry(frame, font=("Segoe UI", 14), justify="center")
+    vlan_id_entry.pack(pady=5, fill=ctk.X)
     
     def apply_assign():
         v_id = vlan_id_entry.get().strip()
@@ -109,24 +107,23 @@ def open_assign_vlan_popup(parent_gui):
         popup.destroy()
         parent_gui.clear_port_selection()
             
-    tk.Button(popup, text="UYGULA", bg="#C62828", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=apply_assign, activebackground="#E53935").pack(fill=tk.X, padx=40, pady=5, ipady=4)
+    ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_assign).pack(fill=ctk.X, padx=40, pady=5)
 
 def open_stp_config_popup(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen sol tablodan port seçin!")
         
     parent_gui.close_current_popup()
-    popup = tk.Toplevel(parent_gui.root)
+    popup = ctk.CTkToplevel(parent_gui.root)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("STP Ayarları")
     popup.geometry("300x200")
-    popup.configure(bg="#282828")
     
-    tk.Label(popup, text=f"Seçili {len(parent_gui.selected_ports)} Port - STP", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 12, "bold")).pack(pady=15)
+    ctk.CTkLabel(popup, text=f"Seçili {len(parent_gui.selected_ports)} Port - STP", font=("Segoe UI", 14, "bold")).pack(pady=15)
     
-    stp_mode = tk.StringVar(value="portfast")
-    tk.Radiobutton(popup, text="Portfast Aktif Et", variable=stp_mode, value="portfast", bg="#282828", fg="#E0E0E0", selectcolor="#C62828").pack(anchor=tk.W, padx=60)
-    tk.Radiobutton(popup, text="BPDU Guard Aktif Et", variable=stp_mode, value="bpduguard", bg="#282828", fg="#E0E0E0", selectcolor="#C62828").pack(anchor=tk.W, padx=60)
+    stp_mode = ctk.StringVar(value="portfast")
+    ctk.CTkRadioButton(popup, text="Portfast Aktif Et", variable=stp_mode, value="portfast", fg_color="#C62828").pack(anchor=ctk.W, padx=60, pady=5)
+    ctk.CTkRadioButton(popup, text="BPDU Guard Aktif Et", variable=stp_mode, value="bpduguard", fg_color="#C62828").pack(anchor=ctk.W, padx=60, pady=5)
     
     def apply_stp():
         mode = stp_mode.get()
@@ -141,31 +138,30 @@ def open_stp_config_popup(parent_gui):
         popup.destroy()
         parent_gui.clear_port_selection()
             
-    tk.Button(popup, text="UYGULA", bg="#C62828", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=apply_stp, activebackground="#E53935").pack(fill=tk.X, padx=40, pady=20, ipady=4)
+    ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_stp).pack(fill=ctk.X, padx=40, pady=15)
 
 def open_management_ip_popup(parent_gui):
     parent_gui.close_current_popup()
-    popup = tk.Toplevel(parent_gui.root)
+    popup = ctk.CTkToplevel(parent_gui.root)
     popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("Management IP Ata")
     popup.geometry("350x300")
-    popup.configure(bg="#282828")
     
-    tk.Label(popup, text="Management Interface Ayarı", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 11, "bold")).pack(pady=10)
-    frame = tk.Frame(popup, bg="#282828")
+    ctk.CTkLabel(popup, text="Management Interface Ayarı", font=("Segoe UI", 14, "bold")).pack(pady=10)
+    frame = ctk.CTkFrame(popup, fg_color="transparent")
     frame.pack(pady=5)
     
-    tk.Label(frame, text="VLAN ID:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 9)).grid(row=0, column=0, sticky="e", padx=5, pady=2)
-    vid_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0)
+    ctk.CTkLabel(frame, text="VLAN ID:", font=("Segoe UI", 12)).grid(row=0, column=0, sticky="e", padx=5, pady=2)
+    vid_entry = ctk.CTkEntry(frame)
     vid_entry.grid(row=0, column=1, padx=5, pady=2)
     
-    tk.Label(frame, text="IP Adresi:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 9)).grid(row=1, column=0, sticky="e", padx=5, pady=2)
-    ip_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0)
+    ctk.CTkLabel(frame, text="IP Adresi:", font=("Segoe UI", 12)).grid(row=1, column=0, sticky="e", padx=5, pady=2)
+    ip_entry = ctk.CTkEntry(frame)
     ip_entry.grid(row=1, column=1, padx=5, pady=2)
     
-    tk.Label(frame, text="Subnet Mask:", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 9)).grid(row=2, column=0, sticky="e", padx=5, pady=2)
-    mask_entry = tk.Entry(frame, bg="#3C3C3C", fg="#E0E0E0", insertbackground="white", bd=0)
+    ctk.CTkLabel(frame, text="Subnet Mask:", font=("Segoe UI", 12)).grid(row=2, column=0, sticky="e", padx=5, pady=2)
+    mask_entry = ctk.CTkEntry(frame)
     mask_entry.grid(row=2, column=1, padx=5, pady=2)
     mask_entry.insert(0, "255.255.255.0")
     
@@ -182,21 +178,20 @@ def open_management_ip_popup(parent_gui):
         parent_gui.log_to_terminal(f"\n[MANAGEMENT IP] VLAN {vid} -> IP: {ip} Mask: {mask}\n")
         popup.destroy()
             
-    tk.Button(popup, text="UYGULA", bg="#C62828", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=apply_mgmt, activebackground="#E53935").pack(fill=tk.X, padx=40, pady=15, ipady=4)
+    ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_mgmt).pack(fill=ctk.X, padx=40, pady=15)
 
 def open_port_control_popup_new(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen sol tablodan port seçin!")
     parent_gui.close_current_popup()
-    popup = tk.Toplevel(parent_gui.root)
+    popup = ctk.CTkToplevel(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("Port Aç / Kapat")
     popup.geometry("300x200")
-    popup.configure(bg="#282828")
     
-    tk.Label(popup, text=f"Seçili {len(parent_gui.selected_ports)} Portu", fg="#E0E0E0", bg="#282828", font=("Segoe UI", 12, "bold")).pack(pady=15)
-    port_state = tk.StringVar(value="no shutdown")
-    tk.Radiobutton(popup, text="AÇ (no shutdown)", variable=port_state, value="no shutdown", bg="#282828", fg="#E0E0E0", selectcolor="#4CAF50").pack(anchor=tk.W, padx=70, pady=5)
-    tk.Radiobutton(popup, text="KAPAT (shutdown)", variable=port_state, value="shutdown", bg="#282828", fg="#E0E0E0", selectcolor="#E53935").pack(anchor=tk.W, padx=70, pady=5)
+    ctk.CTkLabel(popup, text=f"Seçili {len(parent_gui.selected_ports)} Portu", font=("Segoe UI", 14, "bold")).pack(pady=15)
+    port_state = ctk.StringVar(value="no shutdown")
+    ctk.CTkRadioButton(popup, text="AÇ (no shutdown)", variable=port_state, value="no shutdown", fg_color="#4CAF50").pack(anchor=ctk.W, padx=70, pady=5)
+    ctk.CTkRadioButton(popup, text="KAPAT (shutdown)", variable=port_state, value="shutdown", fg_color="#E53935").pack(anchor=ctk.W, padx=70, pady=5)
     
     def apply_port_state():
         state = port_state.get()
@@ -207,7 +202,7 @@ def open_port_control_popup_new(parent_gui):
         popup.destroy()
         parent_gui.clear_port_selection()
             
-    tk.Button(popup, text="UYGULA", bg="#C62828", fg="white", font=("Segoe UI", 10, "bold"), bd=0, cursor="hand2", command=apply_port_state, activebackground="#E53935").pack(fill=tk.X, padx=40, pady=15, ipady=4)
+    ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_port_state).pack(fill=ctk.X, padx=40, pady=15)
 
 def apply_default_port_settings(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen port panelinden port seçin!")

@@ -23,6 +23,10 @@
     "stp": {
       "portfast": "spanning-tree portfast",
       "bpduguard": "spanning-tree bpduguard enable"
+    },
+    "poe": {
+      "enable": "power inline auto",
+      "disable": "power inline never"
     }
   },
   "Allied Telesis": {
@@ -49,6 +53,10 @@
     "stp": {
       "portfast": "spanning-tree edgeport",
       "bpduguard": "spanning-tree bpdu-guard enable"
+    },
+    "poe": {
+      "enable": "power inline auto",
+      "disable": "power inline never"
     }
   },
   "Ruijie": {
@@ -75,6 +83,10 @@
     "stp": {
       "portfast": "spanning-tree portfast",
       "bpduguard": "spanning-tree bpduguard enable"
+    },
+    "poe": {
+      "enable": "poe enable",
+      "disable": "poe disable"
     }
   },
   "HPE Aruba": {
@@ -101,6 +113,10 @@
     "stp": {
       "portfast": "spanning-tree port-type admin-edge",
       "bpduguard": "spanning-tree bpdu-guard"
+    },
+    "poe": {
+      "enable": "power-over-ethernet",
+      "disable": "no power-over-ethernet"
     }
   }
 }

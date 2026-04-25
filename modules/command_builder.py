@@ -154,3 +154,19 @@ def build_default_port_cmds(brand, ports):
         cmds.append(template.format(port=pr))
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
+
+def build_poe_cmds(brand, ports, state):
+    """PoE'yi açma (enable) veya kapatma (disable) komutlarını derler."""
+    brand_cmds = COMMANDS.get(brand, {})
+    poe_cmds = brand_cmds.get("poe", {})
+    cmds = [get_config_term(brand)]
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        cmds.append(get_interface_name(brand, pr, is_range))
+        if state == "enable":
+            cmds.append(poe_cmds.get("enable", "power inline auto"))
+        else:
+            cmds.append(poe_cmds.get("disable", "power inline never"))
+    cmds.append(brand_cmds.get("end_command", "end"))
+    return cmds
