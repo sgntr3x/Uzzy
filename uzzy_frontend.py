@@ -319,7 +319,8 @@ class UzzyGUI:
     def send_shortcut_command(self, cmd):
         self.log_to_terminal(f"Uzzy >> {cmd}\n")
         if self.serial_conn.is_connected:
-            self.serial_conn.write_data(cmd + "\r\n")
+            # Önce olası bir config modundan çıkmak için "end" gönderilir, sonra asıl komut işletilir.
+            self.serial_conn.write_data("\r\nend\r\n" + cmd + "\r\n")
         else:
             self.log_to_terminal(f"(Simülasyon) Komut işlendi: {cmd}\n")
 
