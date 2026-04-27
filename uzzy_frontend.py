@@ -33,11 +33,12 @@ class UzzyGUI:
         # State (Durum Değişkenleri)
         self.selected_brand = ctk.StringVar(value="Cisco")
         self.port_count_var = ctk.StringVar(value="48")
+        self.baudrate_var = ctk.StringVar(value="9600")
         
         # Servisleri Backend'den Çağır
         self.scanner = uzzy_backend.UzzyScanner()
         self.scanner.start()
-        self.serial_conn = uzzy_backend.UzzySerialConnection(baudrate=115200)
+        self.serial_conn = uzzy_backend.UzzySerialConnection(baudrate=9600)
         self.active_popup = None
         self.capture_filepath = None
 
@@ -56,6 +57,15 @@ class UzzyGUI:
         self.brand_menu = ctk.CTkOptionMenu(brand_frame, variable=self.selected_brand, values=brands, fg_color="#3C3C3C", button_color="#505050")
         self.brand_menu.pack(side=tk.LEFT, padx=2)
             
+        # Baud Rate Seçimi (Orta/Sol Taraf)
+        baudrate_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
+        baudrate_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        ctk.CTkLabel(baudrate_frame, text="BAUD:", text_color="#A0A0A0", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        
+        baudrates = ["9600", "19200", "38400", "57600", "115200"]
+        self.baudrate_menu = ctk.CTkOptionMenu(baudrate_frame, variable=self.baudrate_var, values=baudrates, fg_color="#3C3C3C", button_color="#505050", width=90, command=self.on_baudrate_change)
+        self.baudrate_menu.pack(side=tk.LEFT, padx=2)
+
         # Port Sayısı Seçimi (Orta/Sol Taraf)
         port_count_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         port_count_frame.pack(side=tk.LEFT, padx=10, pady=10)
@@ -150,11 +160,12 @@ class UzzyGUI:
         self.terminal.tag_config("info", foreground="#29B6F6")
         self.terminal.tag_config("warning", foreground="#FFA726")
         
-        self.terminal.configure(state="disabled") 
+        self.terminal.bind("<Key>", self.on_terminal_key)
+        self.terminal.bind("<Button-1>", self.on_terminal_click)
 
         # --- KISAYOLLAR (Shortcuts) ALANI ---
         self.shortcuts_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        self.shortcuts_frame.pack(fill=tk.X, padx=15, pady=(0, 5))
+        self.shortcuts_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
         font_frame = ctk.CTkFrame(self.shortcuts_frame, fg_color="transparent")
         font_frame.pack(side=tk.RIGHT)
@@ -168,15 +179,6 @@ class UzzyGUI:
                      ("sh vlan", "show vlan brief"), ("sh mac", "show mac address-table"), ("sh cdp nei", "show cdp neighbors detail"), ("sh lldp nei", "show lldp neighbors detail")]
         for lbl, cmd in shortcuts:
             ctk.CTkButton(self.shortcuts_frame, text=lbl, fg_color="#3C3C3C", hover_color="#505050", height=24, font=("Consolas", 11, "bold"), command=lambda c=cmd: self.send_shortcut_command(c)).pack(side=tk.LEFT, padx=3)
-
-        # Giriş Alanı
-        self.entry_container = ctk.CTkFrame(self.main_container, fg_color="#3C3C3C", corner_radius=5)
-        self.entry_container.pack(fill=tk.X, padx=15, pady=(0, 15))
-        
-        ctk.CTkLabel(self.entry_container, text="Uzzy @ terminal:~$", text_color="#E53935", font=("Consolas", 11, "bold")).pack(side=tk.LEFT, padx=10, pady=5)
-        self.entry = ctk.CTkEntry(self.entry_container, font=("Consolas", 12), fg_color="transparent", border_width=0)
-        self.entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 10), pady=5)
-        self.entry.bind("<Return>", self.send_command)
 
         # Durum Çubuğu
         self.status_var = tk.StringVar(value="Sistem Hazır - Port Bekleniyor...")
@@ -212,6 +214,12 @@ class UzzyGUI:
         apply_icon()
         window.after(200, apply_icon)
 
+    def on_baudrate_change(self, choice):
+        if self.serial_conn.is_connected:
+            self.log_to_terminal(f"\n[SİSTEM] Baud rate {choice} olarak değiştirildi. Yeniden bağlanılıyor...\n")
+            self.serial_conn.disconnect()
+            # auto_connect_service yeni baud rate değeriyle kendiliğinden bağlanacak.
+
     def close_current_popup(self):
         if self.active_popup:
             try:
@@ -222,8 +230,6 @@ class UzzyGUI:
         self.mac_display_area = None
 
     def log_to_terminal(self, message):
-        self.terminal.configure(state="normal")
-        
         tag = None
         msg_upper = message.upper()
         if "[HATA]" in msg_upper or "HATASI" in msg_upper or "ERROR" in msg_upper: tag = "error"
@@ -231,11 +237,24 @@ class UzzyGUI:
         elif "[YENİ CİHAZ]" in msg_upper or "[VLAN OLUŞTURULDU]" in msg_upper or "ATANDI]" in msg_upper or "AYARLANDI]" in msg_upper or "BAŞARIYLA" in msg_upper or "TAMAMLANDI" in msg_upper: tag = "success"
         elif "[UYARI]" in msg_upper: tag = "warning"
         
-        if tag: self.terminal.insert("end", message, tag)
-        else: self.terminal.insert("end", message)
+        # Satır başı (\r), Terminal Zili (\x07) ve Null (\x00) karakterlerini temizle (Kare kutuları önler)
+        message = message.replace('\r', '').replace('\x07', '').replace('\x00', '')
+        
+        # Backspace (\b) karakterlerini algıla ve ekrandan karakter sil (Kare kutuları engeller)
+        if '\b' in message:
+            for char in message:
+                if char == '\b':
+                    if self.terminal.index("end-1c") != "1.0": # En başa kadar silinmesini engelle
+                        self.terminal.delete("end-2c", "end-1c")
+                else:
+                    if tag: self.terminal.insert("end", char, tag)
+                    else: self.terminal.insert("end", char)
+        else:
+            if tag: self.terminal.insert("end", message, tag)
+            else: self.terminal.insert("end", message)
             
         self.terminal.see("end")
-        self.terminal.configure(state="disabled")
+        self.terminal.mark_set("insert", "end") # İmleci her zaman en alta sabitle
         
         if self.mac_display_area:
             try:
@@ -245,19 +264,56 @@ class UzzyGUI:
                 self.mac_display_area = None
 
     def clear_terminal(self):
-        self.terminal.configure(state="normal")
         self.terminal.delete("1.0", tk.END)
-        self.terminal.configure(state="disabled")
 
-    def send_command(self, event=None):
-        command = self.entry.get()
-        if command:
-            self.log_to_terminal(f"Uzzy >> {command}\n")
-            if self.serial_conn.is_connected:
-                self.serial_conn.write_data(command + "\r\n")
-            else:
-                self.log_to_terminal(f"(Simülasyon) Komut işlendi: {command}\n")
-            self.entry.delete(0, tk.END)
+    def on_terminal_click(self, event):
+        # Tıklama sonrası eğer kullanıcı metin seçmiyorsa imleci hemen en alta geri çek
+        def snap_to_end():
+            if not self.terminal.tag_ranges("sel"):
+                self.terminal.mark_set("insert", "end")
+                self.terminal.see("end")
+        self.root.after(50, snap_to_end)
+
+    def on_terminal_key(self, event):
+        self.terminal.mark_set("insert", "end")
+        self.terminal.see("end")
+
+        # Kopyalama işlemi (Ctrl+C)
+        if event.state & 0x4 and event.keysym.lower() == 'c':
+            return None
+            
+        # Yapıştırma işlemi (Ctrl+V)
+        if event.state & 0x4 and event.keysym.lower() == 'v':
+            try:
+                clipboard = self.root.clipboard_get()
+                if self.serial_conn.is_connected:
+                    self.serial_conn.write_data(clipboard)
+                else:
+                    self.log_to_terminal(f"(Simülasyon) Yapıştırıldı:\n{clipboard}\n")
+            except: pass
+            return "break"
+
+        # Sadece modifier tuşlarını atla
+        if event.keysym in ("Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock", "Num_Lock", "Scroll_Lock"):
+            return None
+            
+        char_to_send = None
+        
+        if event.keysym == "Return": char_to_send = '\r' # PuTTY gibi Enter'da sadece carriage return atarız
+        elif event.keysym == "BackSpace": char_to_send = '\b'
+        elif event.keysym == "Tab": char_to_send = '\t'
+        elif event.keysym == "Up": char_to_send = '\x1b[A'
+        elif event.keysym == "Down": char_to_send = '\x1b[B'
+        elif event.keysym == "Right": char_to_send = '\x1b[C'
+        elif event.keysym == "Left": char_to_send = '\x1b[D'
+        elif event.char: char_to_send = event.char
+        
+        if char_to_send:
+            if self.serial_conn.is_connected: self.serial_conn.write_data(char_to_send)
+            else: self.log_to_terminal(char_to_send if char_to_send != '\r' else '\n')
+                    
+        # Tkinter'in varsayılan olarak karakteri ekrana basmasını engelle (switch'in kendi echo'sunu bekleyeceğiz)
+        return "break"
 
     def send_shortcut_command(self, cmd):
         self.log_to_terminal(f"Uzzy >> {cmd}\n")
@@ -358,6 +414,11 @@ class UzzyGUI:
             self.log_to_terminal(f"\n[BAŞARILI] Sistem {total_ports} adet aktif fiziksel port algıladı. Arayüz {final_count} portlu yapıya güncellendi.\n")
         else:
             self.log_to_terminal("\n[HATA] Otomatik algılama başarısız oldu. Cihazın 'enable' modunda olduğuna emin olun.\n")
+            
+        # Terminal sayfalama ayarını eski haline döndür ki manuel sh run gibi komutlar sürekli akmasın (PuTTY mantığı)
+        brand = self.selected_brand.get()
+        if brand == "HPE Aruba": self.serial_conn.write_data("\r\npage\r\n")
+        else: self.serial_conn.write_data("\r\nterminal length 24\r\n")
 
     def on_port_drag(self, event):
         widget = event.widget.winfo_containing(event.x_root, event.y_root)
@@ -415,10 +476,11 @@ class UzzyGUI:
             if current_ports:
                 target_port = list(current_ports)[0]
                 self.log_to_terminal(f"\n[OTOMATİK BAĞLANTI] {target_port} tespit edildi, bağlanılıyor...\n")
-                success, msg = self.serial_conn.connect(port=target_port)
+                selected_baud = int(self.baudrate_var.get())
+                success, msg = self.serial_conn.connect(port=target_port, baudrate=selected_baud)
                 if success:
-                    self.status_var.set(f"Bağlı: {target_port} (115200 Baud)")
-                    self.log_to_terminal(f"--- {target_port} BAĞLANTISI KURULDU ---\n")
+                    self.status_var.set(f"Bağlı: {target_port} ({selected_baud} Baud)")
+                    self.log_to_terminal(f"--- {target_port} BAĞLANTISI KURULDU ({selected_baud} Baud) ---\n")
                 else:
                     self.status_var.set(f"Bağlantı Hatası: {target_port}")
                     self.log_to_terminal(f"[HATA] {msg}\n")
@@ -477,6 +539,11 @@ class UzzyGUI:
                 self.capture_file_obj = None
             self.log_to_terminal(f"\n[BİLGİ] Config başarıyla kaydedildi: {self.capture_filepath}\n")
             messagebox.showinfo("Başarılı", f"Config yedeği alındı:\n{self.capture_filepath}")
+            
+            # Terminal sayfalama ayarını default'a çek
+            brand = self.selected_brand.get()
+            if brand == "HPE Aruba": self.serial_conn.write_data("\r\npage\r\n")
+            else: self.serial_conn.write_data("\r\nterminal length 24\r\n")
 
 def main():
     root = ctk.CTk()
