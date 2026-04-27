@@ -415,11 +415,6 @@ class UzzyGUI:
         else:
             self.log_to_terminal("\n[HATA] Otomatik algılama başarısız oldu. Cihazın 'enable' modunda olduğuna emin olun.\n")
             
-        # Terminal sayfalama ayarını eski haline döndür ki manuel sh run gibi komutlar sürekli akmasın (PuTTY mantığı)
-        brand = self.selected_brand.get()
-        if brand == "HPE Aruba": self.serial_conn.write_data("\r\npage\r\n")
-        else: self.serial_conn.write_data("\r\nterminal length 24\r\n")
-
     def on_port_drag(self, event):
         widget = event.widget.winfo_containing(event.x_root, event.y_root)
         if widget in self.port_buttons.values():
@@ -481,6 +476,11 @@ class UzzyGUI:
                 if success:
                     self.status_var.set(f"Bağlı: {target_port} ({selected_baud} Baud)")
                     self.log_to_terminal(f"--- {target_port} BAĞLANTISI KURULDU ({selected_baud} Baud) ---\n")
+                    
+                    # Çıktıların duraksamadan sürekli akması için sayfalamayı kapat
+                    brand = self.selected_brand.get()
+                    cmd = "\r\nno page\r\n" if brand == "HPE Aruba" else "\r\nterminal length 0\r\n"
+                    self.root.after(1500, lambda: self.serial_conn.write_data(cmd))
                 else:
                     self.status_var.set(f"Bağlantı Hatası: {target_port}")
                     self.log_to_terminal(f"[HATA] {msg}\n")
@@ -540,11 +540,6 @@ class UzzyGUI:
             self.log_to_terminal(f"\n[BİLGİ] Config başarıyla kaydedildi: {self.capture_filepath}\n")
             messagebox.showinfo("Başarılı", f"Config yedeği alındı:\n{self.capture_filepath}")
             
-            # Terminal sayfalama ayarını default'a çek
-            brand = self.selected_brand.get()
-            if brand == "HPE Aruba": self.serial_conn.write_data("\r\npage\r\n")
-            else: self.serial_conn.write_data("\r\nterminal length 24\r\n")
-
 def main():
     root = ctk.CTk()
     
