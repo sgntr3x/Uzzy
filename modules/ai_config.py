@@ -75,9 +75,16 @@ def _run_ai_configuration(parent_gui, user_request, popup, button, status_label)
             
         model = genai.GenerativeModel('models/gemini-2.5-flash')
         brand = parent_gui.selected_brand.get()
-        ports = sorted(list(parent_gui.selected_ports)) if parent_gui.selected_ports else "Hiçbiri"
         
-        prompt = f"Sen bir ağ asistanısın. Switch Markası: {brand} | Seçili Portlar: {ports} | İsteği: '{user_request}'\nSadece komutları döndür."
+        ports = sorted(list(parent_gui.selected_ports)) if parent_gui.selected_ports else []
+        port_mapping = getattr(parent_gui, 'port_mapping', {})
+        if ports and port_mapping:
+            mapped_ports = [port_mapping.get(p, str(p)) for p in ports]
+            ports_str = ", ".join(mapped_ports)
+        else:
+            ports_str = ", ".join(map(str, ports)) if ports else "Hiçbiri"
+        
+        prompt = f"Sen bir ağ asistanısın. Switch Markası: {brand} | Seçili Portlar: {ports_str} | İsteği: '{user_request}'\nSadece komutları döndür."
         response = model.generate_content(prompt)
         generated_text = response.text.strip()
 

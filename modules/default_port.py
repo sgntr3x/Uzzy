@@ -26,20 +26,31 @@ def open_default_port_popup(parent_gui):
         if not messagebox.askyesno("Onay", "Portlar default ayarlara dönecek. Emin misiniz?"): return
 
         commands = []
+        port_mapping = getattr(parent_gui, 'port_mapping', None)
+        
         if brand == "Cisco":
             commands.append("conf t")
             for p in sorted(list(grid.selected_ports)):
-                commands.append(f"default interface GigabitEthernet 1/0/{p}")
+                if port_mapping and p in port_mapping:
+                    commands.append(f"default interface {port_mapping[p]}")
+                else:
+                    commands.append(f"default interface GigabitEthernet 1/0/{p}")
             commands.append("end")
         elif brand == "Allied Telesis":
             commands.append("conf t")
             for p in sorted(list(grid.selected_ports)):
-                commands.append(f"default interface port1.0.{p}")
+                if port_mapping and p in port_mapping:
+                    commands.append(f"default interface {port_mapping[p]}")
+                else:
+                    commands.append(f"default interface port1.0.{p}")
             commands.append("end")
         elif brand == "Ruijie":
             commands.append("configure terminal")
             for p in sorted(list(grid.selected_ports)):
-                commands.append(f"default interface GigabitEthernet 0/{p}")
+                if port_mapping and p in port_mapping:
+                    commands.append(f"default interface {port_mapping[p]}")
+                else:
+                    commands.append(f"default interface GigabitEthernet 0/{p}")
             commands.append("end")
 
         if parent_gui.serial_conn.is_connected:

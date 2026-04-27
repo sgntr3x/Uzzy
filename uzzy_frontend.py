@@ -34,6 +34,7 @@ class UzzyGUI:
         self.selected_brand = ctk.StringVar(value="Cisco")
         self.port_count_var = ctk.StringVar(value="48")
         self.baudrate_var = ctk.StringVar(value="9600")
+        self.port_mapping = {}
         
         # Servisleri Backend'den Çağır
         self.scanner = uzzy_backend.UzzyScanner()
@@ -393,7 +394,7 @@ class UzzyGUI:
 
     def _process_port_count(self):
         content = self.terminal.get("1.0", "end").splitlines()
-        unique_ports = set()
+        found_ports = []
         
         for line in content[-300:]: 
             # Cisco, Ruijie, Allied Telesis (Örn: Gi1/0/1, Te1/1, port1.0.1 vb.)
@@ -402,16 +403,28 @@ class UzzyGUI:
             match_aruba = re.match(r'^\s*(\d+(?:/\d+)?)\s+', line)
             
             if match_standard:
-                unique_ports.add(f"{match_standard.group(1).lower()}{match_standard.group(2)}")
+                port_name = f"{match_standard.group(1)}{match_standard.group(2)}"
+                if port_name not in found_ports:
+                    found_ports.append(port_name)
             elif match_aruba:
-                unique_ports.add(match_aruba.group(1))
-                
-        total_ports = len(unique_ports)
+                port_name = match_aruba.group(1)
+                if port_name not in found_ports:
+                    found_ports.append(port_name)
+                    
+        # Port isimlerini akıllı sıraya diz (Örn: Gi1/0/2, Gi1/0/10'dan önce gelsin)
+        def natural_sort_key(s):
+            return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+        found_ports.sort(key=natural_sort_key)
+        
+        # Haritalama yap (Örn: 1 -> Gi1/0/1, 2 -> Gi1/0/2)
+        self.port_mapping = {i+1: p_name for i, p_name in enumerate(found_ports)}
+        
+        total_ports = len(found_ports)
         if total_ports > 0:
             final_count = "8" if total_ports <= 8 else "12" if total_ports <= 12 else "16" if total_ports <= 16 else "24" if total_ports <= 24 else "28" if total_ports <= 28 else "48" if total_ports <= 48 else "52"
             self.port_count_var.set(final_count)
             self.root.after(0, self.draw_port_panel)
-            self.log_to_terminal(f"\n[BAŞARILI] Sistem {total_ports} adet aktif fiziksel port algıladı. Arayüz {final_count} portlu yapıya güncellendi.\n")
+            self.log_to_terminal(f"\n[BAŞARILI] Sistem {total_ports} adet aktif fiziksel port algıladı. Port eşleştirmeleri yapıldı (Örn: Port 1 = {self.port_mapping.get(1, '')}). Arayüz güncellendi.\n")
         else:
             self.log_to_terminal("\n[HATA] Otomatik algılama başarısız oldu. Cihazın 'enable' modunda olduğuna emin olun.\n")
             

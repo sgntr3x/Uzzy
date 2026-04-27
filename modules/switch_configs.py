@@ -99,7 +99,7 @@ def open_assign_vlan_popup(parent_gui):
             
         brand = parent_gui.selected_brand.get()
         ports = sorted(list(parent_gui.selected_ports))
-        commands = command_builder.build_assign_vlan_cmds(brand, ports, v_id, vlan_mode.get())
+        commands = command_builder.build_assign_vlan_cmds(brand, ports, v_id, vlan_mode.get(), getattr(parent_gui, 'port_mapping', None))
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
@@ -131,7 +131,7 @@ def open_stp_config_popup(parent_gui):
     def apply_stp():
         mode = stp_mode.get()
         brand = parent_gui.selected_brand.get()
-        commands = command_builder.build_stp_cmds(brand, sorted(list(parent_gui.selected_ports)), mode)
+        commands = command_builder.build_stp_cmds(brand, sorted(list(parent_gui.selected_ports)), mode, getattr(parent_gui, 'port_mapping', None))
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
@@ -174,7 +174,7 @@ def open_management_ip_popup(parent_gui):
         ip = ip_entry.get().strip()
         mask = mask_entry.get().strip()
         if not vid or not ip or not mask: return messagebox.showwarning("Uyarı", "Lütfen tüm alanları doldurun!", parent=popup)
-        commands = command_builder.build_management_ip_cmds(parent_gui.selected_brand.get(), vid, ip, mask, None)
+        commands = command_builder.build_management_ip_cmds(parent_gui.selected_brand.get(), vid, ip, mask, None, getattr(parent_gui, 'port_mapping', None))
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
             else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
@@ -200,7 +200,7 @@ def open_port_control_popup_new(parent_gui):
     
     def apply_port_state():
         state = port_state.get()
-        for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state):
+        for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None)):
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
             else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
         parent_gui.log_to_terminal(f"\n[PORT KONTROL] Seçili portlara '{state}' uygulandı.\n")
@@ -213,7 +213,7 @@ def apply_default_port_settings(parent_gui):
     if not parent_gui.selected_ports: return messagebox.showwarning("Uyarı", "Lütfen port panelinden port seçin!")
     if not messagebox.askyesno("Onay", f"Seçili {len(parent_gui.selected_ports)} port default ayarlarına döndürülecek. Emin misiniz?"): return
     
-    for cmd in command_builder.build_default_port_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports))):
+    for cmd in command_builder.build_default_port_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), getattr(parent_gui, 'port_mapping', None)):
         if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
         else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
         time.sleep(0.05)

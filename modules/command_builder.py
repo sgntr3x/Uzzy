@@ -53,7 +53,26 @@ def get_interface_name(brand, port, is_range=False):
         template = brand_cmds.get("interface", "interface GigabitEthernet 0/{port}")
     return template.format(port=port)
 
-def build_create_vlan_cmds(brand, vlan_id, vlan_name=None, ip=None, mask=None):
+def get_interface_names(brand, ports, port_mapping=None):
+    """Port_mapping varsa gerçek isimleri döner, yoksa varsayılan JSON yapılandırmasını dener."""
+    brand_cmds = COMMANDS.get(brand, {})
+    res = []
+    if port_mapping and any(p in port_mapping for p in ports):
+        valid_ports = [p for p in ports if p in port_mapping]
+        if valid_ports:
+            for p in valid_ports:
+                res.append(f"interface {port_mapping[p]}")
+            return res
+            
+    # Mapping yoksa eski usul range ve varsayılan isim gruplaması yap
+    port_ranges = group_ports(ports)
+    for pr in port_ranges:
+        is_range = "-" in pr
+        template = brand_cmds.get("interface_range" if is_range else "interface", "interface GigabitEthernet 0/{port}")
+        res.append(template.format(port=pr))
+    return res
+
+def build_create_vlan_cmds(brand, vlan_id, vlan_name=None, ip=None, mask=None, port_mapping=None):
     """VLAN oluşturma ve opsiyonel olarak IP atama komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     vlan_cmds = brand_cmds.get("vlan_create", {})
@@ -70,16 +89,15 @@ def build_create_vlan_cmds(brand, vlan_id, vlan_name=None, ip=None, mask=None):
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_assign_vlan_cmds(brand, ports, vlan_id, mode):
+def build_assign_vlan_cmds(brand, ports, vlan_id, mode, port_mapping=None):
     """Seçili portlara Access veya Trunk VLAN atama komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     assign_cmds = brand_cmds.get("vlan_assign", {})
     
     cmds = [get_config_term(brand)]
-    port_ranges = group_ports(ports)
-    for pr in port_ranges:
-        is_range = "-" in pr
-        cmds.append(get_interface_name(brand, pr, is_range))
+    interfaces = get_interface_names(brand, ports, port_mapping)
+    for iface in interfaces:
+        cmds.append(iface)
         if mode == "Access":
             cmds.append(assign_cmds.get("access_mode", "switchport mode access"))
             cmds.append(assign_cmds.get("access_vlan", "switchport access vlan {vlan_id}").format(vlan_id=vlan_id))
@@ -89,16 +107,15 @@ def build_assign_vlan_cmds(brand, ports, vlan_id, mode):
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_stp_cmds(brand, ports, stp_mode):
+def build_stp_cmds(brand, ports, stp_mode, port_mapping=None):
     """Portfast veya BPDU Guard komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     stp_cmds = brand_cmds.get("stp", {})
     
     cmds = [get_config_term(brand)]
-    port_ranges = group_ports(ports)
-    for pr in port_ranges:
-        is_range = "-" in pr
-        cmds.append(get_interface_name(brand, pr, is_range))
+    interfaces = get_interface_names(brand, ports, port_mapping)
+    for iface in interfaces:
+        cmds.append(iface)
         if stp_mode == "portfast":
             cmds.append(stp_cmds.get("portfast", "spanning-tree portfast"))
         elif stp_mode == "bpduguard":
@@ -106,7 +123,7 @@ def build_stp_cmds(brand, ports, stp_mode):
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_management_ip_cmds(brand, vid, ip, mask, port=None):
+def build_management_ip_cmds(brand, vid, ip, mask, port=None, port_mapping=None):
     """Management VLAN'ına IP atama ve opsiyonel port atama komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     vlan_cmds = brand_cmds.get("vlan_create", {})
@@ -121,49 +138,52 @@ def build_management_ip_cmds(brand, vid, ip, mask, port=None):
     
     if port and str(port).isdigit():
         cmds.append(brand_cmds.get("exit_command", "exit"))
-        cmds.append(get_interface_name(brand, port))
+        if port_mapping and int(port) in port_mapping:
+            cmds.append(f"interface {port_mapping[int(port)]}")
+        else:
+            cmds.append(get_interface_name(brand, port))
         cmds.append(assign_cmds.get("access_mode", "switchport mode access"))
         cmds.append(assign_cmds.get("access_vlan", "switchport access vlan {vlan_id}").format(vlan_id=vid))
         
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_port_control_cmds(brand, ports, state):
+def build_port_control_cmds(brand, ports, state, port_mapping=None):
     """Portu açma veya kapatma komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     cmds = [get_config_term(brand)]
-    port_ranges = group_ports(ports)
-    for pr in port_ranges:
-        is_range = "-" in pr
-        cmds.append(get_interface_name(brand, pr, is_range))
+    interfaces = get_interface_names(brand, ports, port_mapping)
+    for iface in interfaces:
+        cmds.append(iface)
         cmds.append(state)
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_default_port_cmds(brand, ports):
+def build_default_port_cmds(brand, ports, port_mapping=None):
     """Portu fabrika ayarlarına sıfırlama komutlarını JSON üzerinden derler."""
     brand_cmds = COMMANDS.get(brand, {})
     cmds = [get_config_term(brand)]
-    port_ranges = group_ports(ports)
-    for pr in port_ranges:
-        is_range = "-" in pr
-        if is_range:
-            template = brand_cmds.get("default_interface_range", brand_cmds.get("default_interface", "default interface GigabitEthernet 0/{port}"))
-        else:
-            template = brand_cmds.get("default_interface", "default interface GigabitEthernet 0/{port}")
-        cmds.append(template.format(port=pr))
+    if port_mapping and any(p in port_mapping for p in ports):
+        valid_ports = [p for p in ports if p in port_mapping]
+        for p in valid_ports:
+            cmds.append(f"default interface {port_mapping[p]}")
+    else:
+        port_ranges = group_ports(ports)
+        for pr in port_ranges:
+            is_range = "-" in pr
+            template = brand_cmds.get("default_interface_range" if is_range else "default_interface", "default interface GigabitEthernet 0/{port}")
+            cmds.append(template.format(port=pr))
     cmds.append(brand_cmds.get("end_command", "end"))
     return cmds
 
-def build_poe_cmds(brand, ports, state):
+def build_poe_cmds(brand, ports, state, port_mapping=None):
     """PoE'yi açma (enable) veya kapatma (disable) komutlarını derler."""
     brand_cmds = COMMANDS.get(brand, {})
     poe_cmds = brand_cmds.get("poe", {})
     cmds = [get_config_term(brand)]
-    port_ranges = group_ports(ports)
-    for pr in port_ranges:
-        is_range = "-" in pr
-        cmds.append(get_interface_name(brand, pr, is_range))
+    interfaces = get_interface_names(brand, ports, port_mapping)
+    for iface in interfaces:
+        cmds.append(iface)
         if state == "enable":
             cmds.append(poe_cmds.get("enable", "power inline auto"))
         else:
