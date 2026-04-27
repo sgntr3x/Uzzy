@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 JSON_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "commands.json")
 
@@ -58,10 +59,45 @@ def get_interface_names(brand, ports, port_mapping=None):
     brand_cmds = COMMANDS.get(brand, {})
     res = []
     if port_mapping and any(p in port_mapping for p in ports):
-        valid_ports = [p for p in ports if p in port_mapping]
+        valid_ports = sorted([p for p in ports if p in port_mapping])
         if valid_ports:
+            # İsimleri akıllı gruplama (Örn: Gi1/0/1, Gi1/0/2, Gi1/0/3 -> Gi1/0/1-3)
+            groups = {}
             for p in valid_ports:
-                res.append(f"interface {port_mapping[p]}")
+                name = port_mapping[p]
+                match = re.match(r'^(.*?)(\d+)$', name)
+                if match:
+                    prefix, num = match.groups()
+                    if prefix not in groups:
+                        groups[prefix] = []
+                    groups[prefix].append(int(num))
+                else:
+                    groups[name] = []
+                    
+            for prefix, nums in groups.items():
+                if not nums:
+                    res.append(f"interface {prefix}")
+                    continue
+                    
+                nums = sorted(list(set(nums)))
+                ranges = []
+                start = end = nums[0]
+                for n in nums[1:]:
+                    if n == end + 1: end = n
+                    else:
+                        ranges.append(str(start) if start == end else f"{start}-{end}")
+                        start = end = n
+                ranges.append(str(start) if start == end else f"{start}-{end}")
+                
+                for r in ranges:
+                    is_range = "-" in r
+                    if is_range:
+                        if brand == "HPE Aruba":
+                            res.append(f"interface {prefix}{r}")
+                        else:
+                            res.append(f"interface range {prefix}{r}")
+                    else:
+                        res.append(f"interface {prefix}{r}")
             return res
             
     # Mapping yoksa eski usul range ve varsayılan isim gruplaması yap

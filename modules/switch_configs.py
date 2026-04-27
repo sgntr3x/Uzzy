@@ -189,21 +189,42 @@ def open_port_control_popup_new(parent_gui):
     parent_gui.close_current_popup()
     popup = ctk.CTkToplevel(parent_gui.root)
     parent_gui.set_window_icon(popup)
+    popup.transient(parent_gui.root)
     parent_gui.active_popup = popup
     popup.title("Port Aç / Kapat")
-    popup.geometry("300x200")
+    popup.geometry("320x240")
     
     ctk.CTkLabel(popup, text=f"Seçili {len(parent_gui.selected_ports)} Portu", font=("Segoe UI", 14, "bold")).pack(pady=15)
     port_state = ctk.StringVar(value="no shutdown")
     ctk.CTkRadioButton(popup, text="AÇ (no shutdown)", variable=port_state, value="no shutdown", fg_color="#4CAF50").pack(anchor=ctk.W, padx=70, pady=5)
     ctk.CTkRadioButton(popup, text="KAPAT (shutdown)", variable=port_state, value="shutdown", fg_color="#E53935").pack(anchor=ctk.W, padx=70, pady=5)
+    ctk.CTkRadioButton(popup, text="KAPAT VE AÇ (Bounce)", variable=port_state, value="bounce", fg_color="#F39C12").pack(anchor=ctk.W, padx=70, pady=5)
     
     def apply_port_state():
         state = port_state.get()
-        for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None)):
-            if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
-        parent_gui.log_to_terminal(f"\n[PORT KONTROL] Seçili portlara '{state}' uygulandı.\n")
+        
+        if state == "bounce":
+            # Önce Kapat
+            for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "shutdown", getattr(parent_gui, 'port_mapping', None)):
+                if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
+                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            
+            parent_gui.log_to_terminal("\n[PORT KONTROL] Portlar kapatıldı. 2 saniye beklenip tekrar açılacak...\n")
+            parent_gui.root.update()
+            time.sleep(2)
+            
+            # Sonra Aç
+            for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "no shutdown", getattr(parent_gui, 'port_mapping', None)):
+                if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
+                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+                
+            parent_gui.log_to_terminal("\n[PORT KONTROL] Portlar tekrar açıldı (Kapat/Aç işlemi tamamlandı).\n")
+        else:
+            for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None)):
+                if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
+                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            parent_gui.log_to_terminal(f"\n[PORT KONTROL] Seçili portlara '{state}' uygulandı.\n")
+            
         popup.destroy()
         parent_gui.clear_port_selection()
             

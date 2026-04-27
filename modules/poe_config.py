@@ -23,7 +23,7 @@ def open_poe_control_popup(parent_gui):
     
     def apply_poe():
         state = poe_state.get()
-        commands = command_builder.build_poe_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state)
+        commands = command_builder.build_poe_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None))
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
             else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")

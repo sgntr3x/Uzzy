@@ -28,7 +28,7 @@ class UzzyGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Uzzy Serial Terminal")
-        self.root.geometry("1280x750")
+        self.root.geometry("1400x800")
 
         # State (Durum Değişkenleri)
         self.selected_brand = ctk.StringVar(value="Cisco")
@@ -403,12 +403,14 @@ class UzzyGUI:
             match_aruba = re.match(r'^\s*(\d+(?:/\d+)?)\s+', line)
             
             if match_standard:
-                port_name = f"{match_standard.group(1)}{match_standard.group(2)}"
-                if port_name not in found_ports:
+                num_part = match_standard.group(2)
+                port_name = f"{match_standard.group(1)}{num_part}"
+                # Yönetim (Management) portlarını (Örn: Fa0, Gi0) arayüz ızgarasından hariç tut
+                if num_part != "0" and port_name not in found_ports:
                     found_ports.append(port_name)
             elif match_aruba:
                 port_name = match_aruba.group(1)
-                if port_name not in found_ports:
+                if port_name != "0" and port_name not in found_ports:
                     found_ports.append(port_name)
                     
         # Port isimlerini akıllı sıraya diz (Örn: Gi1/0/2, Gi1/0/10'dan önce gelsin)
