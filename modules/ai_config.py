@@ -9,6 +9,7 @@ import os
 # get_api_key modülünü bulabilmek için ana dizini path'e ekle
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import get_api_key
+from . import templates as templates_module
 
 try:
     import google.generativeai as genai
@@ -107,7 +108,7 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
     parent_gui.set_window_icon(confirm_popup)
     confirm_popup.transient(popup)
     confirm_popup.title("AI Config Onayı")
-    confirm_popup.geometry("550x550")
+    confirm_popup.geometry("750x550")
     
     ctk.CTkLabel(confirm_popup, text="Aşağıdaki komutlar uygulanacak:", font=("Segoe UI", 12, "bold")).pack(pady=10)
     
@@ -124,14 +125,16 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
     btn_frame = ctk.CTkFrame(confirm_popup, fg_color="transparent")
     btn_frame.pack(pady=15, fill=ctk.X, padx=10)
     
+    BTN, BTN_H = "#3A3A3C", "#505055"
+
     def on_cancel():
         confirm_popup.destroy()
-        
+
     def on_copy():
         confirm_popup.clipboard_clear()
         confirm_popup.clipboard_append(config_string)
         confirm_popup.update()
-        
+
     def on_download():
         filepath = filedialog.asksaveasfilename(
             defaultextension=".txt",
@@ -147,21 +150,43 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
             except Exception as e:
                 messagebox.showerror("Hata", f"Dosya kaydedilemedi:\n{e}", parent=confirm_popup)
 
+    def on_save_template():
+        name_popup = ctk.CTkToplevel(confirm_popup)
+        parent_gui.set_window_icon(name_popup)
+        name_popup.transient(confirm_popup)
+        name_popup.title("Template Adı")
+        name_popup.geometry("320x140")
+        name_popup.grab_set()
+        ctk.CTkLabel(name_popup, text="Template adını girin:", font=("Segoe UI", 12)).pack(pady=(15, 5))
+        name_entry = ctk.CTkEntry(name_popup, font=("Segoe UI", 12))
+        name_entry.pack(fill=ctk.X, padx=20)
+        name_entry.focus()
+        def do_save():
+            tname = name_entry.get().strip()
+            if not tname:
+                messagebox.showwarning("Uyarı", "Template adı boş olamaz!", parent=name_popup)
+                return
+            data = templates_module._load()
+            data[tname] = {"commands": commands_list}
+            templates_module._save(data)
+            name_popup.destroy()
+            messagebox.showinfo("Başarılı", f'"{tname}" template olarak kaydedildi.', parent=confirm_popup)
+        name_entry.bind("<Return>", lambda e: do_save())
+        ctk.CTkButton(name_popup, text="Kaydet", fg_color=BTN, hover_color=BTN_H, font=("Segoe UI", 12, "bold"), command=do_save).pack(pady=10)
+
     def on_confirm():
         if messagebox.askyesno("Emin Misin?", "Bu konfigürasyonları uygulamak istediğinize emin misiniz?", parent=confirm_popup):
             confirm_popup.destroy()
-            parent_gui.log_to_terminal(f"\n[AI CONFIG] '{commands_list[0]}...' uygulanıyor...\n")
             for cmd in commands_list:
                 if parent_gui.serial_conn.is_connected:
                     parent_gui.serial_conn.write_data(cmd + "\r\n")
                 else:
-                    parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+                    parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
                 time.sleep(0.05)
-            parent_gui.log_to_terminal(f"\n[AI CONFIG] Tamamlandı.\n")
             popup.destroy()
-            parent_gui.clear_port_selection()
-            
-    ctk.CTkButton(btn_frame, text="İptal Et", fg_color="#C62828", hover_color="#E53935", command=on_cancel).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
-    ctk.CTkButton(btn_frame, text="Kopyala", fg_color="#0277BD", hover_color="#01579B", command=on_copy).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
-    ctk.CTkButton(btn_frame, text="TXT İndir", fg_color="#F39C12", hover_color="#D68910", command=on_download).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
-    ctk.CTkButton(btn_frame, text="Onayla", fg_color="#2E7D32", hover_color="#1B5E20", command=on_confirm).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
+
+    ctk.CTkButton(btn_frame, text="İptal Et", fg_color=BTN, hover_color=BTN_H, command=on_cancel).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
+    ctk.CTkButton(btn_frame, text="Kopyala", fg_color=BTN, hover_color=BTN_H, command=on_copy).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
+    ctk.CTkButton(btn_frame, text="TXT İndir", fg_color=BTN, hover_color=BTN_H, command=on_download).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
+    ctk.CTkButton(btn_frame, text="Template'e Kaydet", fg_color=BTN, hover_color=BTN_H, command=on_save_template).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)
+    ctk.CTkButton(btn_frame, text="Onayla", fg_color=BTN, hover_color=BTN_H, command=on_confirm).pack(side=ctk.LEFT, padx=5, expand=True, fill=ctk.X)

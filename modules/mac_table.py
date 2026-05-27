@@ -31,7 +31,7 @@ class MacTableBuffer:
         line = line.strip()
         if not line: return
         
-        # Cisco, Ruijie, Aruba ve standart formattaki MAC adreslerini ayıkla (Örn: 0011.2233.4455 veya 00:11:22:33:44:55)
+        # Allied Telesis ve standart formattaki MAC adreslerini ayıkla (Örn: 0011.2233.4455 veya 00:11:22:33:44:55)
         mac_pattern = r'([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}|(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})'
         mac_match = re.search(mac_pattern, line)
         
@@ -85,9 +85,9 @@ def open_mac_table_popup(parent_gui):
     tree.column("Tip", width=120, anchor="center")
     tree.column("Port", width=150, anchor="center")
     
-    scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+    scrollbar = ctk.CTkScrollbar(tree_frame, orientation="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar.set)
-    
+
     tree.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
     
@@ -96,7 +96,7 @@ def open_mac_table_popup(parent_gui):
 
     def fetch():
         parent_gui.mac_display_area.delete() # Yenilemeden önce tabloyu temizle
-        cmd = "show mac-address-table" if brand == "Ruijie" else "show mac address-table"
+        cmd = "show mac address-table"
         if parent_gui.serial_conn.is_connected:
             parent_gui.log_to_terminal(f"\n[BİLGİ] MAC Tablosu çekiliyor...\n")
             parent_gui.serial_conn.write_data(cmd + "\r\n")
@@ -129,9 +129,9 @@ def open_mac_table_popup(parent_gui):
     btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
     btn_frame.pack(fill="x", padx=10, pady=10)
 
-    ctk.CTkButton(btn_frame, text="SORGULA / YENİLE", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=fetch).pack(side="left", fill="x", expand=True, padx=5)
-    ctk.CTkButton(btn_frame, text="DIŞA AKTAR", fg_color="#F39C12", hover_color="#D68910", font=("Segoe UI", 12, "bold"), command=export_data).pack(side="left", fill="x", expand=True, padx=5)
-    ctk.CTkButton(btn_frame, text="TEMİZLE", fg_color="#505050", hover_color="#606060", font=("Segoe UI", 12, "bold"), command=lambda: parent_gui.mac_display_area.delete()).pack(side="left", fill="x", expand=True, padx=5)
+    ctk.CTkButton(btn_frame, text="SORGULA / YENİLE", fg_color="#3A3A3C", hover_color="#505055", font=("Segoe UI", 12, "bold"), command=fetch).pack(side="left", fill="x", expand=True, padx=5)
+    ctk.CTkButton(btn_frame, text="DIŞA AKTAR", fg_color="#3A3A3C", hover_color="#505055", font=("Segoe UI", 12, "bold"), command=export_data).pack(side="left", fill="x", expand=True, padx=5)
+    ctk.CTkButton(btn_frame, text="TEMİZLE", fg_color="#3A3A3C", hover_color="#505055", font=("Segoe UI", 12, "bold"), command=lambda: parent_gui.mac_display_area.delete()).pack(side="left", fill="x", expand=True, padx=5)
 
     def on_close():
         parent_gui.mac_display_area = None

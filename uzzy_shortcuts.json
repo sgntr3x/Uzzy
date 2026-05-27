@@ -1,0 +1,6 @@
+[
+  {
+    "label": "sh run",
+    "command": "show running-config"
+  }
+]

@@ -55,11 +55,9 @@ def open_create_vlan_popup(parent_gui):
 
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             time.sleep(0.05)
         
-        ip_log = f" IP: {ip}" if ip else ""
-        parent_gui.log_to_terminal(f"\n[VLAN OLUŞTURULDU] ID: {v_id} Name: {v_name}{ip_log}\n")
         
         vlan_id_entry.delete(0, "end")
         vlan_name_entry.delete(0, "end")
@@ -103,11 +101,9 @@ def open_assign_vlan_popup(parent_gui):
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             time.sleep(0.05)
-        parent_gui.log_to_terminal(f"\n[{vlan_mode.get().upper()} VLAN ATANDI] Portlar: {list(parent_gui.selected_ports)} VLAN: {v_id}\n")
         popup.destroy()
-        parent_gui.clear_port_selection()
             
     ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_assign).pack(fill=ctk.X, padx=40, pady=5)
 
@@ -135,11 +131,9 @@ def open_stp_config_popup(parent_gui):
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             time.sleep(0.05)
-        parent_gui.log_to_terminal(f"\n[STP AYARLANDI] Seçili portlara {mode} uygulandı.\n")
         popup.destroy()
-        parent_gui.clear_port_selection()
             
     ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_stp).pack(fill=ctk.X, padx=40, pady=15)
 
@@ -177,9 +171,8 @@ def open_management_ip_popup(parent_gui):
         commands = command_builder.build_management_ip_cmds(parent_gui.selected_brand.get(), vid, ip, mask, None, getattr(parent_gui, 'port_mapping', None))
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             time.sleep(0.05)
-        parent_gui.log_to_terminal(f"\n[MANAGEMENT IP] VLAN {vid} -> IP: {ip} Mask: {mask}\n")
         popup.destroy()
             
     ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_mgmt).pack(fill=ctk.X, padx=40, pady=15)
@@ -207,26 +200,22 @@ def open_port_control_popup_new(parent_gui):
             # Önce Kapat
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "shutdown", getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             
-            parent_gui.log_to_terminal("\n[PORT KONTROL] Portlar kapatıldı. 2 saniye beklenip tekrar açılacak...\n")
             parent_gui.root.update()
             time.sleep(2)
             
             # Sonra Aç
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "no shutdown", getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
                 
-            parent_gui.log_to_terminal("\n[PORT KONTROL] Portlar tekrar açıldı (Kapat/Aç işlemi tamamlandı).\n")
         else:
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
-            parent_gui.log_to_terminal(f"\n[PORT KONTROL] Seçili portlara '{state}' uygulandı.\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             
         popup.destroy()
-        parent_gui.clear_port_selection()
             
     ctk.CTkButton(popup, text="UYGULA", fg_color="#C62828", hover_color="#E53935", font=("Segoe UI", 12, "bold"), command=apply_port_state).pack(fill=ctk.X, padx=40, pady=15)
 
@@ -236,7 +225,5 @@ def apply_default_port_settings(parent_gui):
     
     for cmd in command_builder.build_default_port_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), getattr(parent_gui, 'port_mapping', None)):
         if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-        else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+        else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
         time.sleep(0.05)
-    parent_gui.log_to_terminal(f"\n[DEFAULT PORT] Seçili {len(parent_gui.selected_ports)} port sıfırlandı.\n")
-    parent_gui.clear_port_selection()

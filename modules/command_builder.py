@@ -92,10 +92,7 @@ def get_interface_names(brand, ports, port_mapping=None):
                 for r in ranges:
                     is_range = "-" in r
                     if is_range:
-                        if brand == "HPE Aruba":
-                            res.append(f"interface {prefix}{r}")
-                        else:
-                            res.append(f"interface range {prefix}{r}")
+                        res.append(f"interface range {prefix}{r}")
                     else:
                         res.append(f"interface {prefix}{r}")
             return res

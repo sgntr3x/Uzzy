@@ -26,10 +26,8 @@ def open_poe_control_popup(parent_gui):
         commands = command_builder.build_poe_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None))
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"(Simülasyon) Uzzy >> {cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
             time.sleep(0.05)
-        parent_gui.log_to_terminal(f"\n[PoE AYARLANDI] Seçili portlarda PoE '{state}' yapıldı.\n")
         popup.destroy()
-        parent_gui.clear_port_selection()
             
     ctk.CTkButton(popup, text="UYGULA", command=apply_poe, fg_color="#C62828", hover_color="#E53935").pack(fill=ctk.X, padx=40, pady=15)

@@ -1,0 +1,10 @@
+{
+  "vlan": {
+    "commands": [
+      "```",
+      "create vlan 10",
+      "create vlan 20",
+      "```"
+    ]
+  }
+}

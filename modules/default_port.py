@@ -28,15 +28,7 @@ def open_default_port_popup(parent_gui):
         commands = []
         port_mapping = getattr(parent_gui, 'port_mapping', None)
         
-        if brand == "Cisco":
-            commands.append("conf t")
-            for p in sorted(list(grid.selected_ports)):
-                if port_mapping and p in port_mapping:
-                    commands.append(f"default interface {port_mapping[p]}")
-                else:
-                    commands.append(f"default interface GigabitEthernet 1/0/{p}")
-            commands.append("end")
-        elif brand == "Allied Telesis":
+        if brand == "Allied Telesis":
             commands.append("conf t")
             for p in sorted(list(grid.selected_ports)):
                 if port_mapping and p in port_mapping:
@@ -44,17 +36,8 @@ def open_default_port_popup(parent_gui):
                 else:
                     commands.append(f"default interface port1.0.{p}")
             commands.append("end")
-        elif brand == "Ruijie":
-            commands.append("configure terminal")
-            for p in sorted(list(grid.selected_ports)):
-                if port_mapping and p in port_mapping:
-                    commands.append(f"default interface {port_mapping[p]}")
-                else:
-                    commands.append(f"default interface GigabitEthernet 0/{p}")
-            commands.append("end")
 
         if parent_gui.serial_conn.is_connected:
-            parent_gui.log_to_terminal(f"\n[OTOMASYON] {brand} port sıfırlama başlıyor...\n")
             for cmd in commands:
                 parent_gui.serial_conn.write_data(cmd + "\r\n")
                 time.sleep(0.1)
