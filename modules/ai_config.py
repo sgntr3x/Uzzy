@@ -181,7 +181,7 @@ def _apply_ai_commands(parent_gui, commands_text, popup):
                 if parent_gui.serial_conn.is_connected:
                     parent_gui.serial_conn.write_data(cmd + "\r\n")
                 else:
-                    parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+                    parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
                 time.sleep(0.05)
             popup.destroy()
 

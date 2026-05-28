@@ -51,6 +51,10 @@ class UzzyGUI:
         self._history_idx = -1
         self.custom_shortcuts = []
 
+        # Terminal input state
+        self._input_buffer = ""
+        self._current_prompt = "uzzy> "
+
         # Services
         self.scanner = uzzy_backend.UzzyScanner()
         self.scanner.start()
@@ -75,7 +79,6 @@ class UzzyGUI:
         self.top_toolbar = ctk.CTkFrame(root, fg_color="#2D2D30", corner_radius=0)
         self.top_toolbar.pack(side=tk.TOP, fill=tk.X)
 
-        # Model + Hostname (sol)
         info_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         info_frame.pack(side=tk.LEFT, padx=15, pady=10)
 
@@ -91,7 +94,6 @@ class UzzyGUI:
                                            font=("Segoe UI", 12, "bold"))
         self.hostname_label.pack(side=tk.LEFT)
 
-        # Baud Rate
         baud_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         baud_frame.pack(side=tk.LEFT, padx=10, pady=10)
         ctk.CTkLabel(baud_frame, text="BAUD:", text_color="#A0A0A0",
@@ -103,7 +105,6 @@ class UzzyGUI:
             command=self.on_baudrate_change)
         self.baudrate_menu.pack(side=tk.LEFT, padx=2)
 
-        # Otomatik Algıla
         detect_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         detect_frame.pack(side=tk.LEFT, padx=10, pady=10)
         BTN   = "#3A3A3C"
@@ -114,7 +115,6 @@ class UzzyGUI:
             font=("Segoe UI", 12, "bold"), width=120, command=self.auto_detect_ports)
         self.btn_auto_port.pack(side=tk.LEFT)
 
-        # AI Config
         ai_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         ai_frame.pack(side=tk.LEFT, padx=10, pady=10)
         self.btn_ai = ctk.CTkButton(
@@ -123,7 +123,6 @@ class UzzyGUI:
             command=lambda: ai_config.open_ai_config_popup(self))
         self.btn_ai.pack(side=tk.LEFT)
 
-        # Template
         tmpl_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         tmpl_frame.pack(side=tk.LEFT, padx=10, pady=10)
         self.btn_template = ctk.CTkButton(
@@ -132,7 +131,6 @@ class UzzyGUI:
             command=lambda: templates.open_template_manager(self))
         self.btn_template.pack(side=tk.LEFT)
 
-        # Aksiyon butonları (sağ)
         action_frame = ctk.CTkFrame(self.top_toolbar, fg_color="transparent")
         action_frame.pack(side=tk.RIGHT, padx=15, pady=10)
 
@@ -207,7 +205,6 @@ class UzzyGUI:
         self.initial_snapshot = [set()]
         self.drag_mode = [None]
 
-        # Sağ tık context menüsü
         self.port_context_menu = tk.Menu(
             self.root, tearoff=0, bg="#3C3C3C", fg="#E0E0E0",
             activebackground="#C62828", bd=0, font=("Segoe UI", 10))
@@ -232,23 +229,52 @@ class UzzyGUI:
         self.main_container = ctk.CTkFrame(root, fg_color="transparent")
         self.main_container.pack(fill=tk.BOTH, expand=True)
 
-        # Terminal + History yan yana
         content_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
         content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(10, 0))
 
         self.terminal_font_size = 14
-        self.terminal = ctk.CTkTextbox(
-            content_frame, font=("Consolas", self.terminal_font_size),
-            fg_color="#101010", text_color="#E0E0E0")
+
+        # Terminal with scrollbar (tk.Text for full key control)
+        term_frame = tk.Frame(content_frame, bg="#101010")
+        term_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.terminal = tk.Text(
+            term_frame,
+            font=("Consolas", self.terminal_font_size),
+            bg="#101010", fg="#E0E0E0",
+            insertbackground="#4CAF50",
+            selectbackground="#2D5A8E",
+            selectforeground="#E0E0E0",
+            bd=0, padx=6, pady=6,
+            wrap="char",
+            undo=False,
+            cursor="xterm"
+        )
+        term_scroll = ctk.CTkScrollbar(term_frame, orientation="vertical",
+                                        command=self.terminal.yview)
+        self.terminal.configure(yscrollcommand=term_scroll.set)
         self.terminal.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        term_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
         self.terminal.tag_config("success", foreground="#4CAF50")
         self.terminal.tag_config("error",   foreground="#F44336")
         self.terminal.tag_config("info",    foreground="#E0E0E0")
         self.terminal.tag_config("warning", foreground="#FFA726")
-        # Yazma tuşlarını engelle ama Ctrl+C/Ctrl+A ve fare seçimini serbest bırak
-        self.terminal.bind("<Key>", self._terminal_key_guard)
+        self.terminal.tag_config("prompt",  foreground="#4CAF50")
 
-        # Komut Geçmişi paneli (sağ)
+        # Key bindings — route all input through handlers
+        self.terminal.bind("<Key>",       self._on_term_key)
+        self.terminal.bind("<Return>",    self._on_term_enter)
+        self.terminal.bind("<BackSpace>", self._on_term_backspace)
+        self.terminal.bind("<Up>",        self._on_term_up)
+        self.terminal.bind("<Down>",      self._on_term_down)
+        self.terminal.bind("<Tab>",       self._on_term_tab)
+        self.terminal.bind("<Delete>",    lambda e: "break")
+        self.terminal.bind("<Home>",      self._on_term_home)
+        self.terminal.bind("<End>",       self._on_term_end)
+        self.terminal.focus_set()
+
+        # History panel
         hist_panel = ctk.CTkFrame(content_frame, fg_color="#1A1A1A", width=195, corner_radius=6)
         hist_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(6, 0))
         hist_panel.pack_propagate(False)
@@ -279,51 +305,58 @@ class UzzyGUI:
         hist_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.history_listbox.bind("<Double-Button-1>", self._apply_history_item)
 
-        # Input satırı (prompt + komut girişi)
-        self._build_input_area()
-
-        # Kısayollar çubuğu
         self._build_shortcuts_bar()
 
-    def _build_input_area(self):
-        input_frame = ctk.CTkFrame(self.main_container, fg_color="#151515", corner_radius=0)
-        input_frame.pack(fill=tk.X, padx=10, pady=(3, 0))
+        # Show initial offline prompt
+        self._append_prompt()
 
-        self.prompt_label = ctk.CTkLabel(
-            input_frame, text="uzzy> ", text_color="#4CAF50",
-            font=("Consolas", 13, "bold"))
-        self.prompt_label.pack(side=tk.LEFT, padx=(10, 0), pady=4)
+    # ──────────────────────────────────────────────────────────────
+    # TERMINAL KEY HANDLERS (PuTTY-like)
+    # ──────────────────────────────────────────────────────────────
 
-        self.cmd_entry = ctk.CTkEntry(
-            input_frame, fg_color="transparent", border_width=0,
-            text_color="#E0E0E0", font=("Consolas", 13),
-            placeholder_text="komut yazın...")
-        self.cmd_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 10), pady=4)
+    def _on_term_key(self, event):
+        # Ctrl combinations
+        if event.state & 0x4:
+            ks = event.keysym.lower()
+            if ks == 'c':
+                # Copy if selection exists, else send Ctrl+C interrupt
+                try:
+                    sel = self.terminal.get(tk.SEL_FIRST, tk.SEL_LAST)
+                    self.root.clipboard_clear()
+                    self.root.clipboard_append(sel)
+                except tk.TclError:
+                    if self.serial_conn.is_connected:
+                        self.serial_conn.write_data("\x03")
+                        self._input_buffer = ""
+                return "break"
+            if ks == 'a':
+                return None  # allow select all
+            if ks == 'l':
+                self.clear_terminal()
+                return "break"
+            return "break"
 
-        self.cmd_entry.bind("<Return>",    self._on_entry_enter)
-        self.cmd_entry.bind("<Up>",        self._on_entry_up)
-        self.cmd_entry.bind("<Down>",      self._on_entry_down)
-        self.cmd_entry.bind("<Tab>",       self._on_entry_tab)
-        self.cmd_entry.bind("<Control-c>", self._on_entry_ctrlc)
-        self.cmd_entry.focus_set()
-
-    def _terminal_key_guard(self, event):
-        # Ctrl+C (kopyala) ve Ctrl+A (tümünü seç) geçsin, diğer tuşları engelle
-        if event.state & 0x4 and event.keysym.lower() in ("c", "a"):
+        # Ignore modifier-only keys
+        if event.keysym in ('Shift_L', 'Shift_R', 'Control_L', 'Control_R',
+                             'Alt_L', 'Alt_R', 'Caps_Lock', 'Super_L', 'Super_R'):
             return None
+
+        # Printable character
+        if event.char and event.char.isprintable():
+            self._input_buffer += event.char
+            self.terminal.insert("end", event.char)
+            self.terminal.mark_set("insert", "end")
+            self.terminal.see("end")
+            return "break"
+
         return "break"
 
-    def _focus_input(self):
-        self.cmd_entry.focus_set()
-
-    def _on_entry_enter(self, event):
-        cmd = self.cmd_entry.get()
+    def _on_term_enter(self, event):
+        cmd = self._input_buffer
+        self._input_buffer = ""
         self._history_idx = -1
-        self.cmd_entry.delete(0, tk.END)
 
-        prompt = self.prompt_label.cget("text")
-        self.terminal.configure(state="normal")
-        self.terminal.insert("end", f"{prompt}{cmd}\n", "info")
+        self.terminal.insert("end", "\n")
         self.terminal.see("end")
 
         if cmd.strip():
@@ -332,50 +365,76 @@ class UzzyGUI:
         if self.serial_conn.is_connected:
             self.serial_conn.write_data(cmd + "\r\n")
         else:
-            if cmd.strip():
-                pass
+            # Offline mode: show next prompt immediately
+            self._append_prompt()
 
-    def _on_entry_up(self, event):
+        return "break"
+
+    def _on_term_backspace(self, event):
+        if self._input_buffer:
+            self._input_buffer = self._input_buffer[:-1]
+            # Delete the char just before the implicit trailing newline
+            self.terminal.delete("end-2c", "end-1c")
+            self.terminal.mark_set("insert", "end")
+            self.terminal.see("end")
+        return "break"
+
+    def _on_term_up(self, event):
         if not self.command_history:
             return "break"
         self._history_idx = min(self._history_idx + 1, len(self.command_history) - 1)
-        self.cmd_entry.delete(0, tk.END)
-        self.cmd_entry.insert(0, self.command_history[self._history_idx])
+        self._replace_input_buffer(self.command_history[self._history_idx])
         return "break"
 
-    def _on_entry_down(self, event):
+    def _on_term_down(self, event):
         if self._history_idx <= 0:
             self._history_idx = -1
-            self.cmd_entry.delete(0, tk.END)
-            return "break"
-        self._history_idx -= 1
-        self.cmd_entry.delete(0, tk.END)
-        self.cmd_entry.insert(0, self.command_history[self._history_idx])
+            self._replace_input_buffer("")
+        else:
+            self._history_idx -= 1
+            self._replace_input_buffer(self.command_history[self._history_idx])
         return "break"
 
-    def _on_entry_tab(self, event):
+    def _on_term_tab(self, event):
         if self.serial_conn.is_connected:
-            self.serial_conn.write_data(self.cmd_entry.get() + "\t")
+            self.serial_conn.write_data(self._input_buffer + "\t")
         return "break"
 
-    def _on_entry_ctrlc(self, event):
-        if self.serial_conn.is_connected:
-            self.serial_conn.write_data("\x03")
+    def _on_term_home(self, event):
+        # Move cursor to start of input buffer (visual only)
         return "break"
 
-    def _update_prompt(self, data):
-        """Switch çıktısından prompt satırını (hostname# veya hostname(config)#) yakalar."""
-        lines = data.replace('\r', '').split('\n')
-        for line in reversed(lines):
-            line = line.strip()
-            if re.match(r'^\S+(?:\([^)]+\))?[#>]\s*$', line):
-                self.prompt_label.configure(text=line.rstrip() + " ")
-                # Hostname'i de güncelle
-                m = re.match(r'^(\S+?)(?:\([^)]+\))?[#>]', line)
-                if m and not self.switch_hostname:
-                    self.switch_hostname = m.group(1)
-                    self.hostname_label.configure(text=self.switch_hostname, text_color="#4CAF50")
-                break
+    def _on_term_end(self, event):
+        self.terminal.mark_set("insert", "end")
+        self.terminal.see("end")
+        return "break"
+
+    def _replace_input_buffer(self, new_text):
+        """Delete the current input buffer display and replace with new_text."""
+        n = len(self._input_buffer)
+        if n > 0:
+            self.terminal.delete(f"end-{n + 1}c", "end")
+        self._input_buffer = new_text
+        if new_text:
+            self.terminal.insert("end", new_text)
+        self.terminal.mark_set("insert", "end")
+        self.terminal.see("end")
+
+    def _append_prompt(self):
+        """Insert the offline prompt at the end of the terminal."""
+        try:
+            last = self.terminal.get("end-2c", "end-1c")
+            if last and last != '\n':
+                self.terminal.insert("end", "\n")
+        except tk.TclError:
+            pass
+        self.terminal.insert("end", self._current_prompt, "prompt")
+        self.terminal.mark_set("insert", "end")
+        self.terminal.see("end")
+
+    # ──────────────────────────────────────────────────────────────
+    # SHORTCUTS BAR
+    # ──────────────────────────────────────────────────────────────
 
     def _build_shortcuts_bar(self):
         if hasattr(self, "shortcuts_frame"):
@@ -387,7 +446,6 @@ class UzzyGUI:
         self.shortcuts_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
         self.shortcuts_frame.pack(fill=tk.X, padx=10, pady=(4, 10))
 
-        # Sağ: font boyutu + temizle
         font_frame = ctk.CTkFrame(self.shortcuts_frame, fg_color="transparent")
         font_frame.pack(side=tk.RIGHT)
         ctk.CTkButton(font_frame, text="A-", fg_color="#3C3C3C", width=30, height=24,
@@ -398,7 +456,6 @@ class UzzyGUI:
                       height=24, font=("Segoe UI", 11, "bold"),
                       command=self.clear_terminal).pack(side=tk.LEFT, padx=10)
 
-        # Shortcut butonları
         self.custom_shortcuts = self._load_shortcuts()
         for sc in self.custom_shortcuts:
             btn = ctk.CTkButton(
@@ -408,7 +465,6 @@ class UzzyGUI:
             btn.pack(side=tk.LEFT, padx=3)
             btn.bind("<Button-3>", lambda e, s=sc: self._remove_shortcut_confirm(s))
 
-        # "+" ekle
         ctk.CTkButton(
             self.shortcuts_frame, text="+", fg_color="#2E7D32", hover_color="#388E3C",
             width=28, height=24, font=("Segoe UI", 13, "bold"),
@@ -584,20 +640,30 @@ class UzzyGUI:
             tag = "error"
         elif "[BİLGİ]" in msg_upper or "[SİSTEM]" in msg_upper or "BAĞLANDI" in msg_upper or "BAĞLANTISI KURULDU" in msg_upper:
             tag = "info"
-        elif "[YENİ CİHAZ]" in msg_upper or "[VLAN OLUŞTURULDU]" in msg_upper or "ATANDI]" in msg_upper or "AYARLANDI]" in msg_upper or "BAŞARIYLA" in msg_upper or "TAMAMLANDI" in msg_upper:
+        elif "[YENİ CİHAZ]" in msg_upper or "BAŞARIYLA" in msg_upper or "TAMAMLANDI" in msg_upper:
             tag = "success"
         elif "[UYARI]" in msg_upper:
             tag = "warning"
 
-        # ANSI escape sequence'larını temizle (renk kodları, imleç hareketi vb.)
         message = re.sub(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', message)
         message = message.replace('\r\n', '\n').replace('\r', '\n').replace('\x07', '').replace('\x00', '')
+
+        # Temporarily remove the typed input buffer from display, insert data, re-append buffer
+        saved = self._input_buffer
+        if saved:
+            n = len(saved)
+            try:
+                self.terminal.delete(f"end-{n + 1}c", "end")
+            except tk.TclError:
+                pass
 
         if '\b' in message:
             for char in message:
                 if char == '\b':
-                    if self.terminal.index("end-1c") != "1.0":
+                    try:
                         self.terminal.delete("end-2c", "end-1c")
+                    except tk.TclError:
+                        pass
                 else:
                     if tag:
                         self.terminal.insert("end", char, tag)
@@ -608,6 +674,9 @@ class UzzyGUI:
                 self.terminal.insert("end", message, tag)
             else:
                 self.terminal.insert("end", message)
+
+        if saved:
+            self.terminal.insert("end", saved)
 
         self.terminal.see("end")
         self.terminal.mark_set("insert", "end")
@@ -621,15 +690,28 @@ class UzzyGUI:
 
     def clear_terminal(self):
         self.terminal.delete("1.0", tk.END)
-
+        self._input_buffer = ""
+        if not self.serial_conn.is_connected:
+            self._append_prompt()
 
     def send_shortcut_command(self, cmd):
         self._add_to_history(cmd)
-        prompt = self.prompt_label.cget("text")
-        self.terminal.insert("end", f"{prompt}{cmd}\n", "info")
+        # Clear any partially-typed buffer
+        if self._input_buffer:
+            n = len(self._input_buffer)
+            try:
+                self.terminal.delete(f"end-{n + 1}c", "end")
+            except tk.TclError:
+                pass
+            self._input_buffer = ""
+        self._history_idx = -1
+        self.terminal.insert("end", cmd + "\n", "info")
         self.terminal.see("end")
+        self.terminal.mark_set("insert", "end")
         if self.serial_conn.is_connected:
-            self.serial_conn.write_data("\r\nend\r\n" + cmd + "\r\n")
+            self.serial_conn.write_data(cmd + "\r\n")
+        else:
+            self._append_prompt()
 
     def increase_font(self):
         if self.terminal_font_size < 36:
@@ -716,6 +798,23 @@ class UzzyGUI:
     def select_all_ports(self):
         self.selected_ports = set(range(1, int(self.port_count_var.get()) + 1))
         self.update_port_grid_colors()
+
+    # ──────────────────────────────────────────────────────────────
+    # PROMPT DETECTION
+    # ──────────────────────────────────────────────────────────────
+
+    def _update_prompt(self, data):
+        """Parse incoming switch data for prompt pattern; update _current_prompt."""
+        lines = data.replace('\r', '').split('\n')
+        for line in reversed(lines):
+            line = line.strip()
+            if re.match(r'^\S+(?:\([^)]+\))?[#>]\s*$', line):
+                self._current_prompt = line.rstrip() + " "
+                m = re.match(r'^(\S+?)(?:\([^)]+\))?[#>]', line)
+                if m and not self.switch_hostname:
+                    self.switch_hostname = m.group(1)
+                    self.hostname_label.configure(text=self.switch_hostname, text_color="#4CAF50")
+                break
 
     # ──────────────────────────────────────────────────────────────
     # OTOMATİK ALGILAMA
@@ -834,7 +933,9 @@ class UzzyGUI:
                 self.model_label.configure(text="—", text_color="#E0E0E0")
                 self.hostname_label.configure(text="—", text_color="#E0E0E0")
                 self.switch_hostname = ""
-                self.prompt_label.configure(text="uzzy> ")
+                self._current_prompt = "uzzy> "
+                self._input_buffer = ""
+                self._append_prompt()
 
         self.root.after(1000, self.auto_connect_service)
 

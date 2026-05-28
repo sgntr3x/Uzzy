@@ -55,7 +55,7 @@ def open_create_vlan_popup(parent_gui):
 
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             time.sleep(0.05)
         
         
@@ -101,7 +101,7 @@ def open_assign_vlan_popup(parent_gui):
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             time.sleep(0.05)
         popup.destroy()
             
@@ -131,7 +131,7 @@ def open_stp_config_popup(parent_gui):
         
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             time.sleep(0.05)
         popup.destroy()
             
@@ -171,7 +171,7 @@ def open_management_ip_popup(parent_gui):
         commands = command_builder.build_management_ip_cmds(parent_gui.selected_brand.get(), vid, ip, mask, None, getattr(parent_gui, 'port_mapping', None))
         for cmd in commands:
             if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-            else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+            else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             time.sleep(0.05)
         popup.destroy()
             
@@ -200,7 +200,7 @@ def open_port_control_popup_new(parent_gui):
             # Önce Kapat
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "shutdown", getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             
             parent_gui.root.update()
             time.sleep(2)
@@ -208,12 +208,12 @@ def open_port_control_popup_new(parent_gui):
             # Sonra Aç
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), "no shutdown", getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
                 
         else:
             for cmd in command_builder.build_port_control_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), state, getattr(parent_gui, 'port_mapping', None)):
                 if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-                else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+                else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
             
         popup.destroy()
             
@@ -225,5 +225,5 @@ def apply_default_port_settings(parent_gui):
     
     for cmd in command_builder.build_default_port_cmds(parent_gui.selected_brand.get(), sorted(list(parent_gui.selected_ports)), getattr(parent_gui, 'port_mapping', None)):
         if parent_gui.serial_conn.is_connected: parent_gui.serial_conn.write_data(cmd + "\r\n")
-        else: parent_gui.log_to_terminal(f"{parent_gui.prompt_label.cget('text')}{cmd}\n")
+        else: parent_gui.log_to_terminal(f"{parent_gui._current_prompt}{cmd}\n")
         time.sleep(0.05)
